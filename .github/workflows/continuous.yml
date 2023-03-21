@@ -7,14 +7,26 @@ on: [push, workflow_dispatch]
 
 jobs:
 
-  linux-ze_raytracing:
+  ze_raytracing-ubuntu22_04-GCC:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@devel
+    with:
+      image: embree/ubuntu:22.04
+      runs-on: '[ "Linux", "docker", "build" ]'
+      cmd: |
+        mkdir build
+        cd build
+        cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_SYCL_TESTS=OFF ..
+        cmake --build . --target package
+
+  ze_raytracing-linux:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@devel
     with:
       image: embree/ubuntu:22.04
       runs-on: '[ "Linux", "docker", "build" ]'
       env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env ./.github/workflows/gfx-ubuntu22-internal.env
-      artifact-out: linux-ze_raytracing
+      artifact-out: ze_raytracing-linux
       artifact-path: ./build
       cmd: |
         source $DPCPP_ROOT/startup.sh
@@ -23,28 +35,40 @@ jobs:
         cmake -G Ninja -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang ..
         cmake --build . --target package
 
-  linux-ze_raytracing-test-DG2:
+  ze_raytracing-linux-test-DG2:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@devel
-    needs: ["linux-ze_raytracing"]
+    needs: ["ze_raytracing-linux"]
     with:
       image: embree/ubuntu:22.04
       options: --device=/dev/dri:/dev/dri
       runs-on: '[ "Linux", "docker", "dg2" ]'
       env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env ./.github/workflows/gfx-ubuntu22-internal.env
-      artifact-in: linux-ze_raytracing
+      artifact-in: ze_raytracing-linux
       cmd: |
         cd build
         ctest
-         
-  windows-ze_raytracing:
+
+  ze_raytracing-windows-V142:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows_gpu.yml@devel
+    with:
+      runs-on: '[ "Windows", "NAS", "dg2" ]'
+      shell: cmd
+      cmd: |
+        mkdir build
+        cd build
+        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_SYCL_TESTS=OFF ..
+        cmake --build . --target package
+
+  ze_raytracing-windows:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows_gpu.yml@devel
     with:
       runs-on: '[ "Windows", "NAS", "dg2" ]'
       env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env ./.github/workflows/gfx-windows-internal.env
       artifact-path: ./build
-      artifact-out: windows-ze_raytracing
+      artifact-out: ze_raytracing-windows
       shell: cmd
       cmd: |
         call %DPCPP_ROOT%\\startup.bat
@@ -57,9 +81,11 @@ jobs:
   success:
     runs-on: ubuntu-latest
     needs:
-      - linux-ze_raytracing
-      - linux-ze_raytracing-test-DG2
-      - windows-ze_raytracing
+      - ze_raytracing-ubuntu22_04-GCC
+      - ze_raytracing-linux
+      - ze_raytracing-linux-test-DG2
+      - ze_raytracing-windows
+      - ze_raytracing-windows-V142
     if: failure() || cancelled()
     steps:
       - name: Failure

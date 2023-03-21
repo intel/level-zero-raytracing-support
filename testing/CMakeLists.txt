@@ -10,31 +10,8 @@ IF (NOT WIN32)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")                       # generate position independent code suitable for shared libraries
 ENDIF()
 
-IF (NOT DEFINED EMBREE_SYCL_IMPLICIT_DISPATCH_GLOBALS)
-  OPTION(EMBREE_SYCL_IMPLICIT_DISPATCH_GLOBALS "Using L0 allocated Dispatch Globals" ON)
-ENDIF()
-
-IF (NOT EMBREE_SYCL_IMPLICIT_DISPATCH_GLOBALS)
-  ADD_DEFINITIONS("-DEMBREE_SYCL_ALLOC_DISPATCH_GLOBALS")
-ENDIF()
-
-IF (NOT DEFINED EMBREE_SYCL_RT_VALIDATION_API)
-  OPTION(EMBREE_SYCL_RT_VALIDATION_API "Use rt_validation API instead of IGC provided rt_production API" OFF)
-ENDIF()
-
-IF (EMBREE_SYCL_RT_VALIDATION_API)
-  ADD_DEFINITIONS("-DEMBREE_SYCL_RT_VALIDATION_API")
-ENDIF()
-
-IF (EMBREE_SYCL_RT_SIMULATION)
-  SET(RT_SIM_LIBRARY rtcore)
-ENDIF()
-
 GET_FILENAME_COMPONENT(SYCL_COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem \"${SYCL_COMPILER_DIR}/../include/sycl\" -isystem \"${SYCL_COMPILER_DIR}/../include/\"")       # disable warning from SYCL header (FIXME: why required?)
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-bitwise-instead-of-logical") # disables "use of bitwise '&' with boolean operands" warning
-SET(CMAKE_CXX_FLAGS_SYCL "${CMAKE_CXX_FLAGS_SYCL} -Wno-bitwise-instead-of-logical") # disables "use of bitwise '&' with boolean operands" warning
 
 ADD_EXECUTABLE(embree_rthwif_cornell_box rthwif_cornell_box.cpp)
 TARGET_LINK_LIBRARIES(embree_rthwif_cornell_box embree_rthwif sys simd tbb ${RT_SIM_LIBRARY})
@@ -46,7 +23,7 @@ TARGET_LINK_LIBRARIES(embree_rthwif_test embree_rthwif sys simd tbb ${RT_SIM_LIB
 SET_PROPERTY(TARGET embree_rthwif_test APPEND PROPERTY COMPILE_FLAGS "-fsycl -fsycl-targets=spir64 -DEMBREE_SYCL_SUPPORT")
 SET_PROPERTY(TARGET embree_rthwif_test APPEND PROPERTY LINK_FLAGS "-fsycl -lze_loader -fsycl-targets=spir64 -Xsycl-target-backend=spir64 \" -cl-intel-greater-than-4GB-buffer-required \"")
 
-IF (NOT DEFINED EMBREE_SYCL_RT_VALIDATION_API OR EMBREE_SYCL_IMPLICIT_DISPATCH_GLOBALS)
+IF (NOT DEFINED ZE_RAYTRACING_RT_VALIDATION_API OR ZE_RAYTRACING_IMPLICIT_DISPATCH_GLOBALS)
 
   IF (DEFINED EMBREE_MODEL_DIR)
     SET(CORNELL_BOX_REFERENCE "${EMBREE_MODEL_DIR}/reference/cornell_box_reference.tga")

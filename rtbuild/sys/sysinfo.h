@@ -14,6 +14,14 @@
 
 #include "platform.h"
 
+#if !defined(__SSE__)
+#define __SSE__
+#endif
+
+#if !defined(__SSE2__)
+#define __SSE2__
+#endif
+
 /* define isa namespace and ISA bitvector */
 #if defined (__AVX512VL__)
 #  define isa avx512
