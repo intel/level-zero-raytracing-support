@@ -68,3 +68,5 @@ ADD_TEST(NAME rthwif_test_swinstancing_triangles_anyhit_shader_commit COMMAND em
 ADD_TEST(NAME rthwif_test_swinstancing_triangles_anyhit_shader_reject COMMAND embree_rthwif_test --sw-instancing --triangles-anyhit-shader-reject)
 ADD_TEST(NAME rthwif_test_swinstancing_procedurals_committed_hit      COMMAND embree_rthwif_test --sw-instancing --procedurals-committed-hit)
 
+INSTALL(TARGETS embree_rthwif_cornell_box RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
+INSTALL(TARGETS embree_rthwif_test        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
