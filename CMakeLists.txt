@@ -5,8 +5,6 @@ cmake_minimum_required(VERSION 3.1.0)
 
 project(ze_raytracing)
 
-INCLUDE(CTest)
-
 SET(RTHWIF_VERSION_MAJOR 4)
 SET(RTHWIF_VERSION_MINOR 1)
 SET(RTHWIF_VERSION_PATCH 0)
@@ -20,32 +18,24 @@ IF(COMMAND cmake_policy)
 ENDIF()
 
 SET(CMAKE_CXX_STANDARD 17)
-
-ADD_DEFINITIONS("-DZE_RAYTRACING")
-
 SET(EMBREE_CMAKEEXPORT_DIR "cmake")
-
-OPTION(EMBREE_SYCL_IMPLICIT_DISPATCH_GLOBALS "Using L0 allocated Dispatch Globals" ON)
 
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" ${CMAKE_MODULE_PATH})
 
-IF (NOT WIN32)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")                       # generate position independent code suitable for shared libraries
-ENDIF()
-
-GET_FILENAME_COMPONENT(SYCL_COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem \"${SYCL_COMPILER_DIR}/../include/sycl\" -isystem \"${SYCL_COMPILER_DIR}/../include/\"")       # disable warning from SYCL header (FIXME: why required?)
-
+OPTION(EMBREE_SYCL_RT_VALIDATION_API "Use validation ray tracing API" OFF)
+OPTION(EMBREE_SYCL_IMPLICIT_DISPATCH_GLOBALS "Using L0 allocated Dispatch Globals" ON)
 IF (NOT EMBREE_SYCL_IMPLICIT_DISPATCH_GLOBALS)
   ADD_DEFINITIONS("-DEMBREE_SYCL_ALLOC_DISPATCH_GLOBALS")
 ENDIF()
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-bitwise-instead-of-logical") # disables "use of bitwise '&' with boolean operands" warning
-SET(CMAKE_CXX_FLAGS_SYCL "${CMAKE_CXX_FLAGS_SYCL} -Wno-bitwise-instead-of-logical") # disables "use of bitwise '&' with boolean operands" warning
+IF (NOT WIN32)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")                       # generate position independent code suitable for shared libraries
+ENDIF()
 
+INCLUDE(CTest)
 include(fetchtbb)
 include(package)
 INCLUDE(CPack)
@@ -58,5 +48,3 @@ ENDIF()
 ADD_SUBDIRECTORY(rtbuild)
 
 ADD_SUBDIRECTORY(testing)
-
-

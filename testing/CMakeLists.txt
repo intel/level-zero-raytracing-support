@@ -30,6 +30,12 @@ IF (EMBREE_SYCL_RT_SIMULATION)
   SET(RT_SIM_LIBRARY rtcore)
 ENDIF()
 
+GET_FILENAME_COMPONENT(SYCL_COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem \"${SYCL_COMPILER_DIR}/../include/sycl\" -isystem \"${SYCL_COMPILER_DIR}/../include/\"")       # disable warning from SYCL header (FIXME: why required?)
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-bitwise-instead-of-logical") # disables "use of bitwise '&' with boolean operands" warning
+SET(CMAKE_CXX_FLAGS_SYCL "${CMAKE_CXX_FLAGS_SYCL} -Wno-bitwise-instead-of-logical") # disables "use of bitwise '&' with boolean operands" warning
+
 ADD_EXECUTABLE(embree_rthwif_cornell_box rthwif_cornell_box.cpp)
 TARGET_LINK_LIBRARIES(embree_rthwif_cornell_box embree_rthwif sys simd tbb ${RT_SIM_LIBRARY})
 SET_PROPERTY(TARGET embree_rthwif_cornell_box APPEND PROPERTY COMPILE_FLAGS "-fsycl -fsycl-targets=spir64 -DEMBREE_SYCL_SUPPORT")
