@@ -1,0 +1,17 @@
+## Copyright 2009-2021 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
+
+ADD_SUBDIRECTORY(sys)
+ADD_SUBDIRECTORY(simd)
+
+ADD_LIBRARY(embree_rthwif SHARED rthwif_builder.cpp qbvh6.cpp statistics.cpp)
+TARGET_LINK_LIBRARIES(embree_rthwif PUBLIC ${EMBREE_RTHWIF_SYCL} PRIVATE tbb simd sys)
+SET_TARGET_PROPERTIES(embree_rthwif PROPERTIES OUTPUT_NAME ze_raytracing)
+
+INSTALL(TARGETS embree_rthwif EXPORT ze_raytracing-targets
+  LIBRARY NAMELINK_SKIP DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT lib
+  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT examples
+  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+INSTALL(EXPORT ze_raytracing-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+
+
