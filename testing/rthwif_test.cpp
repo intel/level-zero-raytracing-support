@@ -1576,7 +1576,7 @@ void render_loop(uint32_t i, const TestInput& in, TestOutput& out, size_t scene_
         const float V = sycl::dot(cross(e1,v0+v1),D);
         const float W = sycl::dot(cross(e2,v1+v2),D);
         const float UVW = U+V+W;
-        bool valid = (std::min(U,std::min(V,W)) >= -0.0f) | (std::max(U,std::max(V,W)) <= 0.0f);
+        bool valid = (std::min(U,std::min(V,W)) >= -0.0f) || (std::max(U,std::max(V,W)) <= 0.0f);
         
         /* calculate geometry normal and denominator */
         const sycl::float3 Ng = sycl::cross(e2,e1);
