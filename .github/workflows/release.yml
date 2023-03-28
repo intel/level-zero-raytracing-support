@@ -1,0 +1,60 @@
+## Copyright 2022 Intel Corporation
+## SPDX-License-Identifier: Apache-2.0
+
+name: release
+
+on: [push, workflow_dispatch]
+
+jobs:
+
+  release-ze_raytracing-ubuntu22_04-GCC:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@devel
+    with:
+      image: embree/ubuntu:22.04
+      runs-on: '[ "Linux", "docker", "build" ]'
+      artifact-out: release-ze_raytracing-ubuntu22_04-GCC
+      artifact-path: ./build
+      cmd: |
+        mkdir build
+        cd build
+        cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_SYCL_TESTS=OFF -D CMAKE_VERBOSE_MAKEFILE=ON ..
+        cmake --build . --target package
+
+  release-ze_raytracing-windows-V142:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows_gpu.yml@devel
+    with:
+      runs-on: '[ "Windows", "NAS", "dg2" ]'
+      artifact-path: ./build
+      artifact-out: release-ze_raytracing-windows-V142
+      shell: cmd
+      cmd: |
+        mkdir build
+        cd build
+        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_SYCL_TESTS=OFF ..
+        cmake --build . --target package
+
+  binary-analysis:
+    needs:
+      - release-ze_raytracing-ubuntu22_04-GCC
+      - release-ze_raytracing-windows-V142
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/binary_analysis.yml@main
+    with:
+      project: embree
+      artifact-in-windows: release-ze_raytracing-windows-V142
+      artifact-in-linux:   release-ze_raytracing-ubuntu22_04-GCC
+      path: "build/*.zip build/*.gz"
+
+  antivirus-scan:
+    needs:
+      - release-ze_raytracing-ubuntu22_04-GCC
+      - release-ze_raytracing-windows-V142
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/antivirus_scan.yml@main
+    with:
+      project: embree
+      artifact-in-windows: release-ze_raytracing-windows-V142
+      artifact-in-linux:   release-ze_raytracing-ubuntu22_04-GCC
+      path: "build/*.zip build/*.gz"
