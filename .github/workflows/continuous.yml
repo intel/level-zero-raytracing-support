@@ -78,6 +78,15 @@ jobs:
         cmake --build . --target package
         ctest
 
+  static-analysis:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    with:
+      project: ze_raytracing_support
+      prebuild: |
+        cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_SYCL_TESTS=OFF
+      build: cmake --build build
+
   success:
     runs-on: ubuntu-latest
     needs:
