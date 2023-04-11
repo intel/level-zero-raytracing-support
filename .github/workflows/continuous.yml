@@ -9,7 +9,7 @@ jobs:
 
   ze_raytracing-ubuntu22_04-GCC:
     secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@devel
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
       image: embree/ubuntu:22.04
       runs-on: '[ "Linux", "docker", "build" ]'
@@ -21,7 +21,7 @@ jobs:
 
   ze_raytracing-linux:
     secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@devel
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@main
     with:
       image: embree/ubuntu:22.04
       runs-on: '[ "Linux", "docker", "build" ]'
@@ -29,15 +29,14 @@ jobs:
       artifact-out: ze_raytracing-linux
       artifact-path: ./build
       cmd: |
-        source $DPCPP_ROOT/startup.sh
         mkdir build
         cd build
-        cmake -G Ninja -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=OFF ..
+        cmake -G Ninja -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=ON ..
         cmake --build . --target package
 
   ze_raytracing-linux-test-DG2:
     secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@devel
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@main
     needs: ["ze_raytracing-linux"]
     with:
       image: embree/ubuntu:22.04
@@ -51,15 +50,15 @@ jobs:
 
   ze_raytracing-windows-V142:
     secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows_gpu.yml@devel
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
       runs-on: '[ "Windows", "NAS", "dg2" ]'
       shell: cmd
       cmd: |
-        mkdir build
-        cd build
-        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" -D CMAKE_BUILD_TYPE=Release ..
-        cmake --build . --target package
+        mkdir build || exit /b
+        cd build || exit /b
+        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" -D CMAKE_BUILD_TYPE=Release .. || exit /b
+        cmake --build . --target package || exit /b
 
   ze_raytracing-windows:
     secrets: inherit
@@ -71,12 +70,11 @@ jobs:
       artifact-out: ze_raytracing-windows
       shell: cmd
       cmd: |
-        call %DPCPP_ROOT%\\startup.bat
-        mkdir build
-        cd build
-        cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=ON ..
-        cmake --build . --target package
-        ctest
+        mkdir build || exit /b
+        cd build || exit /b
+        cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=ON .. || exit /b
+        cmake --build . --target package || exit /b
+        ctest || exit /b
 
   static-analysis:
     secrets: inherit
@@ -101,4 +99,5 @@ jobs:
         run: |
           echo "::notice title=Success::Workflow failed"
           exit 1
+
 
