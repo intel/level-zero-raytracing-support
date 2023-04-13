@@ -93,6 +93,7 @@ jobs:
       - ze_raytracing-linux-test-DG2
       - ze_raytracing-windows
       - ze_raytracing-windows-V142
+      - static-analysis
     if: failure() || cancelled()
     steps:
       - name: Failure
