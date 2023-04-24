@@ -7,8 +7,8 @@ INCLUDE(GNUInstallDirs)
 # Install Documentation
 ##############################################################
 
-INSTALL(FILES "${PROJECT_SOURCE_DIR}/LICENSE.txt" DESTINATION doc COMPONENT lib)
-INSTALL(FILES "${PROJECT_SOURCE_DIR}/CHANGELOG.md" DESTINATION doc COMPONENT lib)
+#INSTALL(FILES "${PROJECT_SOURCE_DIR}/LICENSE.txt" DESTINATION doc COMPONENT lib)
+#INSTALL(FILES "${PROJECT_SOURCE_DIR}/CHANGELOG.md" DESTINATION doc COMPONENT lib)
 
 ##############################################################
 # CPack specific stuff
