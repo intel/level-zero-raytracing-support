@@ -9,8 +9,6 @@ INCLUDE(GNUInstallDirs)
 
 INSTALL(FILES "${PROJECT_SOURCE_DIR}/LICENSE.txt" DESTINATION doc COMPONENT lib)
 INSTALL(FILES "${PROJECT_SOURCE_DIR}/CHANGELOG.md" DESTINATION doc COMPONENT lib)
-INSTALL(FILES "${PROJECT_SOURCE_DIR}/third-party-programs.txt" DESTINATION doc COMPONENT lib)
-INSTALL(FILES "${PROJECT_SOURCE_DIR}/third-party-programs-TBB.txt" DESTINATION doc COMPONENT lib)
 
 ##############################################################
 # CPack specific stuff
