@@ -14,7 +14,7 @@ INCLUDE(GNUInstallDirs)
 # CPack specific stuff
 ##############################################################
 
-SET(CPACK_PACKAGE_NAME "L0 Ray Tracing Build API")
+SET(CPACK_PACKAGE_NAME "Level Zero Ray Tracing Support")
 SET(CPACK_PACKAGE_FILE_NAME "ze_raytracing-${RTHWIF_VERSION}")
 SET(CPACK_STRIP_FILES TRUE)
 
@@ -22,7 +22,7 @@ SET(CPACK_PACKAGE_VERSION_MAJOR ${RTHWIF_VERSION_MAJOR})
 SET(CPACK_PACKAGE_VERSION_MINOR ${RTHWIF_VERSION_MINOR})
 SET(CPACK_PACKAGE_VERSION_PATCH ${RTHWIF_VERSION_PATCH})
 SET(CPACK_PACKAGE_VERSION ${RTHWIF_VERSION})
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Implements acceleration structure build for L0 ray tracing extension.")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Support library for Level Zero ray tracing extension.")
 SET(CPACK_PACKAGE_VENDOR "Intel Corporation")
 SET(CPACK_PACKAGE_CONTACT embree_support@intel.com)
 #SET(CPACK_MONOLITHIC_INSTALL 0)
@@ -60,4 +60,3 @@ ELSE()
   SET(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}.x86_64.linux")
  
 ENDIF()
-
