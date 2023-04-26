@@ -82,7 +82,7 @@ jobs:
     with:
       project: ze_raytracing_support
       prebuild: |
-        cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release
+        cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_STATIC=ON
       build: cmake --build build
 
   success:
