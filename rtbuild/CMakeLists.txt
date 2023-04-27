@@ -6,7 +6,7 @@ ADD_SUBDIRECTORY(simd)
 
 ADD_LIBRARY(embree_rthwif SHARED rtbuild.cpp qbvh6.cpp statistics.cpp)
 TARGET_LINK_LIBRARIES(embree_rthwif PUBLIC ${EMBREE_RTHWIF_SYCL} PRIVATE tbb simd sys)
-SET_TARGET_PROPERTIES(embree_rthwif PROPERTIES OUTPUT_NAME ze_raytracing)
+SET_TARGET_PROPERTIES(embree_rthwif PROPERTIES OUTPUT_NAME ze_intel_rt_support)
 TARGET_COMPILE_DEFINITIONS(embree_rthwif PRIVATE ZE_RAYTRACING)
 
 INSTALL(TARGETS embree_rthwif EXPORT ze_raytracing-targets

@@ -14,8 +14,8 @@ INCLUDE(GNUInstallDirs)
 # CPack specific stuff
 ##############################################################
 
-SET(CPACK_PACKAGE_NAME "Level Zero Ray Tracing Support")
-SET(CPACK_PACKAGE_FILE_NAME "ze_raytracing-${ZE_RAYTRACING_VERSION}")
+SET(CPACK_PACKAGE_NAME "oneAPI Level Zero Ray Tracing Support")
+SET(CPACK_PACKAGE_FILE_NAME "intel-level-zero-rt-support-${ZE_RAYTRACING_VERSION}")
 SET(CPACK_STRIP_FILES TRUE)
 
 SET(CPACK_PACKAGE_VERSION_MAJOR ${ZE_RAYTRACING_VERSION_MAJOR})

@@ -1,8 +1,8 @@
 
-Level Zero Ray Tracing Support
-==============================
+oneAPI Level Zero Ray Tracing Support
+=====================================
 
-The Level Zero Ray Tracing Support library implements high
+The oneAPI Level Zero Ray Tracing Support library implements high
 performance CPU based construction algorithms for 3D acceleration
 structures that are compatible with the ray tracing hardware of
 Intel GPUs. This library is used by Intel(R) oneAPI Level Zero

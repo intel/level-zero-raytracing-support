@@ -1,7 +1,7 @@
 Version History
 ---------------
 
-### Level Zero Ray Tracing Build Extension 1.0.0
--   Initial implementation of level zero ray tracing build extension
+### oneAPI Level Zero Ray Tracing Support 1.0.0
+-   Initial implementation of oneAPI Level Zero Ray Tracing Support library
 
 
