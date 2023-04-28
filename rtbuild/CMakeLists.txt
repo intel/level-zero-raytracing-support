@@ -4,11 +4,6 @@
 ADD_SUBDIRECTORY(sys)
 ADD_SUBDIRECTORY(simd)
 
-IF (ZE_RAYTRACING_SYCL_TESTS)
-  GET_FILENAME_COMPONENT(SYCL_COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem \"${SYCL_COMPILER_DIR}/../include/sycl\" -isystem \"${SYCL_COMPILER_DIR}/../include/\"")       # disable warning from SYCL header (FIXME: why required?)
-ENDIF()
-
 ADD_LIBRARY(embree_rthwif SHARED rtbuild.cpp qbvh6.cpp statistics.cpp)
 TARGET_LINK_LIBRARIES(embree_rthwif PUBLIC ${EMBREE_RTHWIF_SYCL} PRIVATE tbb simd sys)
 SET_TARGET_PROPERTIES(embree_rthwif PROPERTIES OUTPUT_NAME ze_intel_rt_support)
