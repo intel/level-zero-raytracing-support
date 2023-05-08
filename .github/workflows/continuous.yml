@@ -52,6 +52,23 @@ jobs:
         cd bin
         ctest
 
+  ze_raytracing-linux-test-PVC:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@main
+    needs: ["ze_raytracing-linux-test"]
+    with:
+      image: embree/ubuntu:22.04
+      options: --device=/dev/dri:/dev/dri
+      runs-on: '[ "Linux", "docker", "pvc" ]'
+      env-from-files: ./.github/workflows/gfx-ubuntu22-internal.env
+      artifact-in: ze_raytracing-linux-test
+      cmd: |
+        cd build
+        tar xzf intel-level-zero-rt-support*.x86_64.linux.tar.gz
+        cd intel-level-zero-rt-support*.x86_64.linux
+        cd bin
+        ctest
+
   ze_raytracing-windows-V142:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
@@ -111,6 +128,7 @@ jobs:
       - ze_raytracing-ubuntu22_04-GCC
       - ze_raytracing-linux-test
       - ze_raytracing-linux-test-DG2
+      - ze_raytracing-linux-test-PVC
       - ze_raytracing-windows-V142
       - ze_raytracing-windows-test
       - ze_raytracing-windows-test-DG2
