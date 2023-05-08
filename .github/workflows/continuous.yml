@@ -42,7 +42,7 @@ jobs:
       image: embree/ubuntu:22.04
       options: --device=/dev/dri:/dev/dri
       runs-on: '[ "Linux", "docker", "dg2" ]'
-      env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env ./.github/workflows/gfx-ubuntu22-internal.env
+      env-from-files: ./.github/workflows/gfx-ubuntu22-internal.env
       artifact-in: ze_raytracing-linux-test
       cmd: |
         cd build
@@ -84,7 +84,7 @@ jobs:
     needs: ["ze_raytracing-windows-test"]
     with:
       runs-on: '[ "Windows", "NAS", "dg2" ]'
-      env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env ./.github/workflows/gfx-windows-internal.env
+      env-from-files: ./.github/workflows/gfx-windows-internal.env
       artifact-in: ze_raytracing-windows-test
       shell: cmd
       cmd: |
