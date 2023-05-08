@@ -32,7 +32,7 @@ jobs:
       cmd: |
         mkdir build
         cd build
-        cmake -G Ninja -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=ON ..
+        cmake -G Ninja -D CMAKE_BUILD_TYPE=RelWithDebInfo -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=ON ..
         cmake --build . --target package
 
   ze_raytracing-linux-test-DG2:
@@ -94,7 +94,7 @@ jobs:
       cmd: |
         mkdir build || exit /b
         cd build || exit /b
-        cmake -G Ninja -D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=ON .. || exit /b
+        cmake -G Ninja -D CMAKE_BUILD_TYPE=RelWithDebInfo -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=ON .. || exit /b
         cmake --build . --target package || exit /b
 
   ze_raytracing-windows-test-DG2:
