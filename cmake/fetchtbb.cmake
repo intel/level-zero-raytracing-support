@@ -10,6 +10,10 @@ option(TBBMALLOC_BUILD "Enable tbbmalloc build" OFF)
 SET(TBB_DIR OFF)
 SET(BUILD_SHARED_LIBS OFF)
 
+IF (EXISTS ${PROJECT_SOURCE_DIR}/tbb)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/tbb ${CMAKE_BINARY_DIR}/tbb EXCLUDE_FROM_ALL)
+ELSE()
+
 INCLUDE(FetchContent)
 
 SET(FETCHCONTENT_QUIET OFF)
@@ -31,6 +35,8 @@ if(NOT tbb_static_POPULATED)
   # install it as part of the Embree install targets.
   add_subdirectory(${tbb_static_SOURCE_DIR} ${tbb_static_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
+
+ENDIF()
 
 MARK_AS_ADVANCED(FETCHCONTENT_BASE_DIR)
 MARK_AS_ADVANCED(FETCHCONTENT_FULLY_DISCONNECTED)
