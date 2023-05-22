@@ -6,7 +6,7 @@ The oneAPI Level Zero Ray Tracing Support library implements high
 performance CPU based construction algorithms for 3D acceleration
 structures that are compatible with the ray tracing hardware of
 Intel GPUs. This library is used by Intel(R) oneAPI Level Zero
-to implement part of the ray tracing extension (ze_raytracing). This
+to implement part of the RTAS builder extension. This
 library should not get used directly but only through Level Zero.
 
 
