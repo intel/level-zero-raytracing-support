@@ -4,7 +4,9 @@
 ####################################################################
 # fetch TBB and build static version of it
 
-option(TBB_STRICT "Treat compiler warnings as errors" OFF)
+IF (WIN32)
+  option(TBB_STRICT "Treat compiler warnings as errors" OFF)
+ENDIF()
 option(TBB_TEST "Enable testing" OFF)
 option(TBBMALLOC_BUILD "Enable tbbmalloc build" OFF)
 SET(TBB_DIR OFF)
