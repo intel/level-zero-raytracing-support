@@ -19,6 +19,33 @@ jobs:
         cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release ..
         cmake --build . --target package
 
+  ubuntu22_04-agama-build:
+     secrets: inherit
+     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+     with:
+       image: gfx-build/testinstall-ubuntu22.04:18
+       runs-on: '[ "Linux", "docker", "build" ]'
+       artifact-out: ubuntu22_04-agama-build
+       artifact-path: level-zero-raytracing_*.dsc level-zero-raytracing_*.tar.xz level-zero-raytracing_*amd64.deb level-zero-raytracing_*amd64.buildinfo
+       pre-cmd: |
+        apt update
+        eatmydata apt -y install git git-lfs
+       cmd: |
+         # Build source packages.
+         mkdir level-zero-raytracing
+         cp -r * level-zero-raytracing || true
+         cd level-zero-raytracing
+         git clone -b v2021.6.0 https://github.com/oneapi-src/oneTBB.git tbb
+         dpkg-buildpackage -j`nproc --all` --no-sign -S -d -rfakeroot
+         cd ..
+         # Install source package in level-zero-raytracing-build dir.
+         # Then we are going to build binaries from it.
+         # Keep in mind that packages will be written to this dir.
+         eatmydata apt-get build-dep -y ./level-zero-raytracing_*.dsc
+         dpkg-source -x ./level-zero-raytracing*.dsc level-zero-raytracing-build
+         cd level-zero-raytracing-build
+         dpkg-buildpackage -j`nproc --all` -B --no-sign -rfakeroot
+
   ze_raytracing-linux-test:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker_gpu.yml@main
