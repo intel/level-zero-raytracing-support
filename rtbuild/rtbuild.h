@@ -42,8 +42,6 @@ RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderCreateExpImpl(ze_driver_ha
 
 RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderDestroyExpImpl(ze_rtas_builder_exp_handle_t hBuilder);
 
-RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeDeviceGetRTASPropertiesExpImpl( const ze_device_handle_t hDevice, ze_rtas_device_exp_properties_t* pRtasProp );
-
 RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeDriverRTASFormatCompatibilityCheckExpImpl( ze_driver_handle_t hDriver,
                                                                                        const ze_rtas_format_exp_t accelFormat,
                                                                                        const ze_rtas_format_exp_t otherAccelFormat);
