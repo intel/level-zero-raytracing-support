@@ -208,13 +208,6 @@ ze_result_t validate(ze_rtas_device_exp_properties_t* pProperties)
   return ZE_RESULT_SUCCESS;
 }
 
-typedef enum _ze_raytracing_accel_format_internal_t {
-  ZE_RTAS_DEVICE_FORMAT_EXP_INVALID = 0,      // invalid acceleration structure format
-  ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1 = 1, // acceleration structure format version 1
-  ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_2 = 2, // acceleration structure format version 2
-  ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_MAX = 2
-} ze_raytracing_accel_format_internal_t;
-
 ze_result_t ZeWrapper::zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_rtas_device_exp_properties_t* pProperties )
 {
   /* input validation */
