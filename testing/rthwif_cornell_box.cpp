@@ -450,12 +450,15 @@ int main(int argc, char* argv[])
   if (argc > 2 && std::string(argv[1]) == std::string("--compare"))
     reference_img = argv[2];
 
-  ZeWrapper::init();
-  
   /* create SYCL objects */
   sycl::device device = sycl::device(sycl::gpu_selector_v);
   sycl::queue queue = sycl::queue(device,exception_handler);
   sycl::context context = queue.get_context();
+
+  if (ZeWrapper::init() != ZE_RESULT_SUCCESS) {
+    std::cerr << "ZeWrapper not successfully initialized" << std::endl;
+    return 1;
+  }
 
 #if defined(ZE_RAYTRACING_RT_SIMULATION)
   RTCore::Init();

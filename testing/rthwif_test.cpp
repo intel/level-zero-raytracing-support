@@ -2060,7 +2060,10 @@ void* allocDispatchGlobals(sycl::device device, sycl::context context)
 
 int main(int argc, char* argv[])
 {
-  ZeWrapper::init();
+  if (ZeWrapper::init() != ZE_RESULT_SUCCESS) {
+    std::cerr << "ZeWrapper not successfully initialized" << std::endl;
+    return 1;
+  }
 
 #if defined(ZE_RAYTRACING_RT_SIMULATION)
   RTCore::Init();
