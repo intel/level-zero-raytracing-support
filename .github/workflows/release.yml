@@ -24,13 +24,13 @@ jobs:
         cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release ..
         cmake --build . --target package
 
-  ubuntu22_04-agama-build:
+  ubuntu22_04-pkg-build:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
       image: gfx-build/testinstall-ubuntu22.04:18
       runs-on: '[ "Linux", "docker", "build" ]'
-      artifact-out: ubuntu22_04-agama-build
+      artifact-out: ubuntu22_04-pkg-build
       artifact-path: level-zero-raytracing_*.dsc level-zero-raytracing_*.tar.xz level-zero-raytracing_*amd64.deb level-zero-raytracing_*amd64.buildinfo
       pre-cmd: |
         apt update
@@ -50,6 +50,93 @@ jobs:
         dpkg-source -x ./level-zero-raytracing*.dsc level-zero-raytracing-build
         cd level-zero-raytracing-build
         dpkg-buildpackage -j`nproc --all` -B --no-sign -rfakeroot
+
+  rhel_88-pkg-build:
+     secrets: inherit
+     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+     with:
+       image: gfx-build/testinstall-rhel-8.8:3
+       runs-on: '[ "Linux", "docker", "build" ]'
+       artifact-out: rhel_88-pkg-build
+       artifact-path: level-zero-raytracing*.rpm
+       pre-cmd: |
+        dnf makecache
+        dnf install -y git git-lfs rpmdevtools
+       cmd: |
+         VERSION="1.0.0"
+         # Prep the source tar exactly like defined in spec file
+         rm -rf /build/*
+         mkdir -p /build/level-zero-raytracing-$VERSION
+         cp -r * /build/level-zero-raytracing-$VERSION || true
+         pushd /build/level-zero-raytracing-$VERSION
+         git clone -b v2021.6.0 https://github.com/oneapi-src/oneTBB.git tbb
+         rm -rf ~/rpmbuild
+         rpmdev-setuptree && cd /build
+         tar czf ~/rpmbuild/SOURCES/level-zero-raytracing-$VERSION.tar.gz level-zero-raytracing-$VERSION
+         cp -pr level-zero-raytracing-$VERSION/rhel/level-zero-raytracing.spec ~/rpmbuild/SPECS/level-zero-raytracing.spec
+
+         # Build starts here
+         # Build rpm src pkg first, ignoring dependencies because it's only source rpm
+         rpmbuild -bs --nodeps '--define=dist .el8_8' ~/rpmbuild/SPECS/level-zero-raytracing.spec
+         #Make sure rpmbuild uses src tarball and not above created sources
+         rm -rf ~/rpmbuild/SOURCES/level-zero-raytracing-$VERSION.tar.gz
+         # Build binary pkgs from source pkg, but first install dependencies
+         dnf builddep -y ~/rpmbuild/SRPMS/*.src.rpm
+         rpmbuild --rebuild '--define=dist .el8_8' --define='__cmake_builddir .' ~/rpmbuild/SRPMS/*.src.rpm
+         # Test install the built package
+         dnf install -y ~/rpmbuild/RPMS/*/*.rpm
+         # Copy artifacts
+         popd
+         rm -rf ~/rpmbuild/RPMS/*/level-zero-raytracing-debug*.rpm
+         cp -pr ~/rpmbuild/RPMS/*/*.rpm .
+         rm -rf ~/rpmbuild
+
+  sles_15sp4-pkg-build:
+     secrets: inherit
+     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+     with:
+       image: gfx-build/testinstall-sle15-15.4:45
+       runs-on: '[ "Linux", "docker", "build" ]'
+       artifact-out: sles_15sp4-pkg-build
+       artifact-path: level-zero-raytracing*.rpm
+       pre-cmd: |
+        unset no_proxy
+        unset NO_PROXY
+        zypper ref -s
+        zypper install -y git rpmbuild
+        # Add repo with Intel graphics stack dependencies
+        zypper addrepo -r https://repositories.intel.com/graphics/sles/15sp4/intel-graphics.repo
+        zypper --non-interactive --gpg-auto-import-keys refresh
+       cmd: |
+         unset no_proxy
+         unset NO_PROXY
+         VERSION="1.0.0"
+         # Prep the source tar exactly like defined in spec file
+         rm -rf /tmp/*
+         mkdir -p /tmp/level-zero-raytracing-$VERSION
+         cp -r * /tmp/level-zero-raytracing-$VERSION || true
+         pushd /tmp/level-zero-raytracing-$VERSION
+         git clone -b v2021.6.0 https://github.com/oneapi-src/oneTBB.git tbb
+         rm -rf ~/rpmbuild
+         rpmdev-setuptree && cd /tmp
+         tar czf ~/rpmbuild/SOURCES/level-zero-raytracing-$VERSION.tar.gz level-zero-raytracing-$VERSION
+         cp -pr level-zero-raytracing-$VERSION/sle/level-zero-raytracing.spec ~/rpmbuild/SPECS/level-zero-raytracing.spec
+
+         # Build starts here
+         # Build rpm src pkg first, ignoring dependencies because it's only source rpm
+         rpmbuild -bs --nodeps ~/rpmbuild/SPECS/level-zero-raytracing.spec
+         # Set up build dependencies from Intel gfx stack
+         # Build binary pkgs from source pkg, but first remove created sources and install dependencies
+         rm -rf ~/rpmbuild/SOURCES/level-zero-raytracing*.tar.gz
+         zypper --non-interactive si ~/rpmbuild/SRPMS/*.src.rpm
+         rpmbuild --rebuild  ~/rpmbuild/SRPMS/*.src.rpm
+         # Test install the built package
+         zypper install --allow-unsigned-rpm -y ~/rpmbuild/RPMS/*/*.rpm
+         # Copy artifacts
+         popd
+         rm -rf ~/rpmbuild/RPMS/*/level-zero-raytracing-debug*.rpm
+         cp -pr ~/rpmbuild/RPMS/*/*.rpm .
+         rm -rf ~/rpmbuild
 
   release-ze_raytracing-windows-V142:
     secrets: inherit
