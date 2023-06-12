@@ -7,8 +7,14 @@ INCLUDE(GNUInstallDirs)
 # Install Documentation
 ##############################################################
 
-#INSTALL(FILES "${PROJECT_SOURCE_DIR}/LICENSE.txt" DESTINATION doc COMPONENT lib)
-#INSTALL(FILES "${PROJECT_SOURCE_DIR}/CHANGELOG.md" DESTINATION doc COMPONENT lib)
+IF (WIN32)
+  INSTALL(FILES "${PROJECT_SOURCE_DIR}/LICENSE.txt" DESTINATION doc COMPONENT lib)
+  INSTALL(FILES "${PROJECT_SOURCE_DIR}/third-party-programs.txt" DESTINATION doc COMPONENT lib)
+  INSTALL(FILES "${PROJECT_SOURCE_DIR}/third-party-programs-TBB.txt" DESTINATION doc COMPONENT lib)
+#  INSTALL(FILES "${PROJECT_SOURCE_DIR}/CHANGELOG.md" DESTINATION doc COMPONENT lib)
+ELSE()
+  # Linux package builds include these separately
+ENDIF()
 
 ##############################################################
 # CPack specific stuff
