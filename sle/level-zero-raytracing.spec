@@ -62,7 +62,7 @@ cd build
 %config(noreplace)
 %license LICENSE.txt
 %license third-party-programs*
-%{_libdir}/libze_intel_rt_support.so
+%{_libdir}/libze_intel_gpu_raytracing.so
 
 
 %doc
