@@ -158,34 +158,6 @@ namespace embree
 #endif
   }
   
-  __forceinline int btc(int v, int i) {
-    long r = v; _bittestandcomplement(&r,i); return r;
-  }
-  
-  __forceinline int bts(int v, int i) {
-    long r = v; _bittestandset(&r,i); return r;
-  }
-  
-  __forceinline int btr(int v, int i) {
-    long r = v; _bittestandreset(&r,i); return r;
-  }
-  
-#if defined(__X86_64__)
-  
-  __forceinline size_t btc(size_t v, size_t i) {
-    size_t r = v; _bittestandcomplement64((__int64*)&r,i); return r;
-  }
-  
-  __forceinline size_t bts(size_t v, size_t i) {
-    __int64 r = v; _bittestandset64(&r,i); return r;
-  }
-  
-  __forceinline size_t btr(size_t v, size_t i) {
-    __int64 r = v; _bittestandreset64(&r,i); return r;
-  }
-  
-#endif
-  
   __forceinline int32_t atomic_cmpxchg(volatile int32_t* p, const int32_t c, const int32_t v) {
     return _InterlockedCompareExchange((volatile long*)p,v,c);
   }
@@ -352,54 +324,6 @@ namespace embree
 #endif
   }
   
-  __forceinline int btc(int v, int i) {
-#if defined(__X86_ASM__)
-    int r = 0; asm ("btc %1,%0" : "=r"(r) : "r"(i), "0"(v) : "flags" ); return r;
-#else
-    return (v ^ (1 << i));
-#endif
-  }
-  
-  __forceinline int bts(int v, int i) {
-#if defined(__X86_ASM__)
-    int r = 0; asm ("bts %1,%0" : "=r"(r) : "r"(i), "0"(v) : "flags"); return r;
-#else
-    return (v | (1 << i));
-#endif
-  }
-  
-  __forceinline int btr(int v, int i) {
-#if defined(__X86_ASM__)
-    int r = 0; asm ("btr %1,%0" : "=r"(r) : "r"(i), "0"(v) : "flags"); return r;
-#else
-    return (v & ~(1 << i));
-#endif
-  }
-  
-  __forceinline size_t btc(size_t v, size_t i) {
-#if defined(__X86_ASM__)
-    size_t r = 0; asm ("btc %1,%0" : "=r"(r) : "r"(i), "0"(v) : "flags" ); return r;
-#else
-    return (v ^ (1 << i));
-#endif
-  }
-  
-  __forceinline size_t bts(size_t v, size_t i) {
-#if defined(__X86_ASM__)
-    size_t r = 0; asm ("bts %1,%0" : "=r"(r) : "r"(i), "0"(v) : "flags"); return r;
-#else
-    return (v | (1 << i));
-#endif
-  }
-  
-  __forceinline size_t btr(size_t v, size_t i) {
-#if defined(__X86_ASM__)
-    size_t r = 0; asm ("btr %1,%0" : "=r"(r) : "r"(i), "0"(v) : "flags"); return r;
-#else
-    return (v & ~(1 << i));
-#endif
-  }
-
   __forceinline int32_t atomic_cmpxchg(int32_t volatile* value, int32_t comparand, const int32_t input) {
     return __sync_val_compare_and_swap(value, comparand, input);
   }

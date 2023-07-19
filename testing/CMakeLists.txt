@@ -31,7 +31,7 @@ ENDMACRO()
 GET_FILENAME_COMPONENT(SYCL_COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem \"${SYCL_COMPILER_DIR}/../include/sycl\" -isystem \"${SYCL_COMPILER_DIR}/../include/\"")       # disable warning from SYCL header (FIXME: why required?)
 
-ADD_COMPILE_DEFINITIONS(EMBREE_SYCL_SUPPORT)
+#ADD_COMPILE_DEFINITIONS(EMBREE_SYCL_SUPPORT)
 
 IF (ZE_RAYTRACING_RT_SIMULATION)
   SET(RT_SIM_LIBRARY rtcore)
@@ -42,14 +42,14 @@ ADD_EXECUTABLE(embree_rthwif_cornell_box rthwif_cornell_box.cpp)
 TARGET_LINK_LIBRARIES(embree_rthwif_cornell_box sys simd tbb ze_wrapper ${RT_SIM_LIBRARY})
 SET_PROPERTY(TARGET embree_rthwif_cornell_box APPEND PROPERTY COMPILE_FLAGS "-fsycl -fsycl-targets=spir64")
 SET_PROPERTY(TARGET embree_rthwif_cornell_box APPEND PROPERTY LINK_FLAGS "-fsycl -lze_loader -fsycl-targets=spir64 -Xsycl-target-backend=spir64 \" -cl-intel-greater-than-4GB-buffer-required \"")
-TARGET_COMPILE_DEFINITIONS(embree_rthwif_cornell_box PUBLIC EMBREE_LEVEL_ZERO)
+TARGET_COMPILE_DEFINITIONS(embree_rthwif_cornell_box PUBLIC EMBREE_LEVEL_ZERO ZE_RAYTRACING)
 ADD_CUSTOM_COMMAND(TARGET embree_rthwif_cornell_box POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/cornell_box_reference.tga" "$<TARGET_FILE_DIR:embree_rthwif_cornell_box>")
 
 ADD_EXECUTABLE(embree_rthwif_test rthwif_test.cpp)
 TARGET_LINK_LIBRARIES(embree_rthwif_test sys simd tbb ze_wrapper ${RT_SIM_LIBRARY})
 SET_PROPERTY(TARGET embree_rthwif_test APPEND PROPERTY COMPILE_FLAGS "-fsycl -fsycl-targets=spir64")
 SET_PROPERTY(TARGET embree_rthwif_test APPEND PROPERTY LINK_FLAGS "-fsycl -lze_loader -fsycl-targets=spir64 -Xsycl-target-backend=spir64 \" -cl-intel-greater-than-4GB-buffer-required \"")
-TARGET_COMPILE_DEFINITIONS(embree_rthwif_test PUBLIC EMBREE_LEVEL_ZERO)
+TARGET_COMPILE_DEFINITIONS(embree_rthwif_test PUBLIC EMBREE_LEVEL_ZERO ZE_RAYTRACING)
 
 MY_ADD_TEST(NAME rthwif_cornell_box COMMAND embree_rthwif_cornell_box --compare cornell_box_reference.tga)
 
