@@ -44,7 +44,7 @@ To compile the library under Linux including SYCL examples:
 
   cd build
   
-  cmake -G Ninja -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_SYCL_TESTS=ON ..
+  cmake -G Ninja -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER ..
 
   cmake --build . --target package
 
