@@ -109,6 +109,9 @@ void selectLevelZeroRTASBuilder()
 
 void selectInternalRTASBuilder()
 {
+#if defined(ZE_RAYTRACING_DISABLE_INTERNAL_BUILDER)
+  throw std::runtime_error("internal builder disabled at compile time");
+#else
   if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
     return;
   
@@ -124,6 +127,7 @@ void selectInternalRTASBuilder()
   zeRTASParallelOperationJoinExpInternal = &zeRTASParallelOperationJoinExpImpl;
   
   ZeWrapper::rtas_builder = ZeWrapper::INTERNAL;
+#endif
 }
 
 ze_result_t ZeWrapper::init(ZeWrapper::RTAS_BUILD_MODE rtas_build_mode)
