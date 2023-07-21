@@ -146,7 +146,7 @@ jobs:
       cmd: |
         mkdir build
         cd build
-        cmake -G Ninja -D CMAKE_BUILD_TYPE=RelWithDebInfo -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER ..
+        cmake -G Ninja -D CMAKE_BUILD_TYPE=ReleaseInternal -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER ..
         cmake --build . --target package
 
   ze_raytracing-linux-test-DG2:
@@ -183,7 +183,7 @@ jobs:
         cd bin
         ctest
 
-  ze_raytracing-windows-V142:
+  ze_raytracing-windows-V142-Debug:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
@@ -192,9 +192,33 @@ jobs:
       cmd: |
         mkdir build || exit /b
         cd build || exit /b
-        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" -D CMAKE_BUILD_TYPE=Release .. || exit /b
-        cmake --build . --target package || exit /b
+        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" .. || exit /b
+        cmake --build . --config Debug --target package || exit /b
 
+  ze_raytracing-windows-V142-Release:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      runs-on: '[ "Windows", "NAS", "dg2" ]'
+      shell: cmd
+      cmd: |
+        mkdir build || exit /b
+        cd build || exit /b
+        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" .. || exit /b
+        cmake --build . --config Release --target package || exit /b
+
+  ze_raytracing-windows-V142-ReleaseInternal:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
+    with:
+      runs-on: '[ "Windows", "NAS", "dg2" ]'
+      shell: cmd
+      cmd: |
+        mkdir build || exit /b
+        cd build || exit /b
+        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" .. || exit /b
+        cmake --build . --config ReleaseInternal --target package || exit /b
+        
   ze_raytracing-windows-test:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows_gpu.yml@devel
@@ -208,8 +232,8 @@ jobs:
       cmd: |
         mkdir build || exit /b
         cd build || exit /b
-        cmake -G Ninja -D CMAKE_BUILD_TYPE=RelWithDebInfo -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER .. || exit /b
-        cmake --build . --target package || exit /b
+        cmake -G Ninja -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER .. || exit /b
+        cmake --build . --config ReleaseInternal --target package || exit /b
 
   ze_raytracing-windows-test-DG2:
     secrets: inherit
@@ -243,7 +267,9 @@ jobs:
       - ze_raytracing-linux-test
       - ze_raytracing-linux-test-DG2
       - ze_raytracing-linux-test-PVC
-      - ze_raytracing-windows-V142
+      - ze_raytracing-windows-V142-Debug
+      - ze_raytracing-windows-V142-Release
+      - ze_raytracing-windows-V142-ReleaseInternal
       - ze_raytracing-windows-test
       - ze_raytracing-windows-test-DG2
       - static-analysis
