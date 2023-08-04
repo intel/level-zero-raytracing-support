@@ -31,24 +31,24 @@ jobs:
       image: gfx-build/testinstall-ubuntu22.04:18
       runs-on: '[ "Linux", "docker", "build" ]'
       artifact-out: ubuntu22_04-pkg-build
-      artifact-path: level-zero-raytracing_*.dsc level-zero-raytracing_*.tar.xz level-zero-raytracing_*amd64.deb level-zero-raytracing_*amd64.buildinfo
+      artifact-path: intel-level-zero-gpu-raytracing_*.dsc intel-level-zero-gpu-raytracing_*.tar.xz intel-level-zero-gpu-raytracing_*amd64.deb intel-level-zero-gpu-raytracing_*amd64.buildinfo
       pre-cmd: |
         apt update
         eatmydata apt -y install git git-lfs
       cmd: |
         # Build source packages.
-        mkdir level-zero-raytracing
-        cp -r * level-zero-raytracing || true
-        cd level-zero-raytracing
+        mkdir intel-level-zero-gpu-raytracing
+        cp -r * intel-level-zero-gpu-raytracing || true
+        cd intel-level-zero-gpu-raytracing
         git clone -b v2021.6.0 https://github.com/oneapi-src/oneTBB.git tbb
         dpkg-buildpackage -j`nproc --all` --no-sign -S -d -rfakeroot
         cd ..
-        # Install source package in level-zero-raytracing-build dir.
+        # Install source package in intel-level-zero-gpu-raytracing-build dir.
         # Then we are going to build binaries from it.
         # Keep in mind that packages will be written to this dir.
-        eatmydata apt-get build-dep -y ./level-zero-raytracing_*.dsc
-        dpkg-source -x ./level-zero-raytracing*.dsc level-zero-raytracing-build
-        cd level-zero-raytracing-build
+        eatmydata apt-get build-dep -y ./intel-level-zero-gpu-raytracing_*.dsc
+        dpkg-source -x ./intel-level-zero-gpu-raytracing*.dsc intel-level-zero-gpu-raytracing-build
+        cd intel-level-zero-gpu-raytracing-build
         dpkg-buildpackage -j`nproc --all` -B --no-sign -rfakeroot
 
   rhel_88-pkg-build:
@@ -58,7 +58,7 @@ jobs:
        image: gfx-build/testinstall-rhel-8.8:3
        runs-on: '[ "Linux", "docker", "build" ]'
        artifact-out: rhel_88-pkg-build
-       artifact-path: level-zero-raytracing*.rpm
+       artifact-path: intel-level-zero-gpu-raytracing*.rpm
        pre-cmd: |
         dnf makecache
         dnf install -y git git-lfs rpmdevtools
@@ -66,20 +66,20 @@ jobs:
          VERSION="1.0.0"
          # Prep the source tar exactly like defined in spec file
          rm -rf /build/*
-         mkdir -p /build/level-zero-raytracing-$VERSION
-         cp -r * /build/level-zero-raytracing-$VERSION || true
-         pushd /build/level-zero-raytracing-$VERSION
+         mkdir -p /build/intel-level-zero-gpu-raytracing-$VERSION
+         cp -r * /build/intel-level-zero-gpu-raytracing-$VERSION || true
+         pushd /build/intel-level-zero-gpu-raytracing-$VERSION
          git clone -b v2021.6.0 https://github.com/oneapi-src/oneTBB.git tbb
          rm -rf ~/rpmbuild
          rpmdev-setuptree && cd /build
-         tar czf ~/rpmbuild/SOURCES/level-zero-raytracing-$VERSION.tar.gz level-zero-raytracing-$VERSION
-         cp -pr level-zero-raytracing-$VERSION/rhel/level-zero-raytracing.spec ~/rpmbuild/SPECS/level-zero-raytracing.spec
+         tar czf ~/rpmbuild/SOURCES/intel-level-zero-gpu-raytracing-$VERSION.tar.gz intel-level-zero-gpu-raytracing-$VERSION
+         cp -pr intel-level-zero-gpu-raytracing-$VERSION/rhel/intel-level-zero-gpu-raytracing.spec ~/rpmbuild/SPECS/intel-level-zero-gpu-raytracing.spec
 
          # Build starts here
          # Build rpm src pkg first, ignoring dependencies because it's only source rpm
-         rpmbuild -bs --nodeps '--define=dist .el8_8' ~/rpmbuild/SPECS/level-zero-raytracing.spec
+         rpmbuild -bs --nodeps '--define=dist .el8_8' ~/rpmbuild/SPECS/intel-level-zero-gpu-raytracing.spec
          #Make sure rpmbuild uses src tarball and not above created sources
-         rm -rf ~/rpmbuild/SOURCES/level-zero-raytracing-$VERSION.tar.gz
+         rm -rf ~/rpmbuild/SOURCES/intel-level-zero-gpu-raytracing-$VERSION.tar.gz
          # Build binary pkgs from source pkg, but first install dependencies
          dnf builddep -y ~/rpmbuild/SRPMS/*.src.rpm
          rpmbuild --rebuild '--define=dist .el8_8' --define='__cmake_builddir .' ~/rpmbuild/SRPMS/*.src.rpm
@@ -87,7 +87,7 @@ jobs:
          dnf install -y ~/rpmbuild/RPMS/*/*.rpm
          # Copy artifacts
          popd
-         rm -rf ~/rpmbuild/RPMS/*/level-zero-raytracing-debug*.rpm
+         rm -rf ~/rpmbuild/RPMS/*/intel-level-zero-gpu-raytracing-debug*.rpm
          cp -pr ~/rpmbuild/RPMS/*/*.rpm .
          rm -rf ~/rpmbuild
 
@@ -98,7 +98,7 @@ jobs:
        image: gfx-build/testinstall-sle15-15.4:45
        runs-on: '[ "Linux", "docker", "build" ]'
        artifact-out: sles_15sp4-pkg-build
-       artifact-path: level-zero-raytracing*.rpm
+       artifact-path: intel-level-zero-gpu-raytracing*.rpm
        pre-cmd: |
         unset no_proxy
         unset NO_PROXY
@@ -113,28 +113,28 @@ jobs:
          VERSION="1.0.0"
          # Prep the source tar exactly like defined in spec file
          rm -rf /tmp/*
-         mkdir -p /tmp/level-zero-raytracing-$VERSION
-         cp -r * /tmp/level-zero-raytracing-$VERSION || true
-         pushd /tmp/level-zero-raytracing-$VERSION
+         mkdir -p /tmp/intel-level-zero-gpu-raytracing-$VERSION
+         cp -r * /tmp/intel-level-zero-gpu-raytracing-$VERSION || true
+         pushd /tmp/intel-level-zero-gpu-raytracing-$VERSION
          git clone -b v2021.6.0 https://github.com/oneapi-src/oneTBB.git tbb
          rm -rf ~/rpmbuild
          rpmdev-setuptree && cd /tmp
-         tar czf ~/rpmbuild/SOURCES/level-zero-raytracing-$VERSION.tar.gz level-zero-raytracing-$VERSION
-         cp -pr level-zero-raytracing-$VERSION/sle/level-zero-raytracing.spec ~/rpmbuild/SPECS/level-zero-raytracing.spec
+         tar czf ~/rpmbuild/SOURCES/intel-level-zero-gpu-raytracing-$VERSION.tar.gz intel-level-zero-gpu-raytracing-$VERSION
+         cp -pr intel-level-zero-gpu-raytracing-$VERSION/sle/intel-level-zero-gpu-raytracing.spec ~/rpmbuild/SPECS/intel-level-zero-gpu-raytracing.spec
 
          # Build starts here
          # Build rpm src pkg first, ignoring dependencies because it's only source rpm
-         rpmbuild -bs --nodeps ~/rpmbuild/SPECS/level-zero-raytracing.spec
+         rpmbuild -bs --nodeps ~/rpmbuild/SPECS/intel-level-zero-gpu-raytracing.spec
          # Set up build dependencies from Intel gfx stack
          # Build binary pkgs from source pkg, but first remove created sources and install dependencies
-         rm -rf ~/rpmbuild/SOURCES/level-zero-raytracing*.tar.gz
+         rm -rf ~/rpmbuild/SOURCES/intel-level-zero-gpu-raytracing*.tar.gz
          zypper --non-interactive si ~/rpmbuild/SRPMS/*.src.rpm
          rpmbuild --rebuild  ~/rpmbuild/SRPMS/*.src.rpm
          # Test install the built package
          zypper install --allow-unsigned-rpm -y ~/rpmbuild/RPMS/*/*.rpm
          # Copy artifacts
          popd
-         rm -rf ~/rpmbuild/RPMS/*/level-zero-raytracing-debug*.rpm
+         rm -rf ~/rpmbuild/RPMS/*/intel-level-zero-gpu-raytracing-debug*.rpm
          cp -pr ~/rpmbuild/RPMS/*/*.rpm .
          rm -rf ~/rpmbuild
 

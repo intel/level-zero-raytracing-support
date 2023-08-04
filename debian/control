@@ -1,4 +1,4 @@
-Source: level-zero-raytracing
+Source: intel-level-zero-gpu-raytracing
 Section: libs
 Priority: optional
 Maintainer: Intel Graphics Team <linux-graphics@intel.com>
@@ -13,7 +13,7 @@ Build-Depends: debhelper (>= 11),
 Standards-Version: 4.3.0
 Homepage: https://github.com/intel/level-zero-raytracing-support
 
-Package: level-zero-raytracing
+Package: intel-level-zero-gpu-raytracing
 Architecture: amd64
 Depends:
  ${misc:Depends},
