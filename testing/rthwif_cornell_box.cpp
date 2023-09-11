@@ -455,7 +455,12 @@ void render(unsigned int x, unsigned int y, void* bvh, unsigned int* pixels, uns
 int main(int argc, char* argv[])
 {
   /* use can specify reference image to compare against */
+#if defined(EMBREE_SYCL_L0_RTAS_BUILDER)
   ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::AUTO;
+#else
+  ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::INTERNAL;
+#endif
+  
   char* reference_img = NULL;
   for (int i=1; i<argc; i++)
   {
@@ -482,7 +487,7 @@ int main(int argc, char* argv[])
   sycl::queue queue = sycl::queue(device,exception_handler);
   sycl::context context = queue.get_context();
 
-  if (ZeWrapper::init(rtas_build_mode) != ZE_RESULT_SUCCESS) {
+  if (ZeWrapper::init() != ZE_RESULT_SUCCESS) {
     std::cerr << "ZeWrapper not successfully initialized" << std::endl;
     return 1;
   }
@@ -510,12 +515,14 @@ int main(int argc, char* argv[])
       if (strncmp("ZE_experimental_rtas_builder",extensions[i].name,sizeof(extensions[i].name)) == 0)
         ze_rtas_builder = true;
     }
-    
+
     if (ze_rtas_builder)
-      ZeWrapper::initRTASBuilder(ZeWrapper::LEVEL_ZERO);
+      ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::AUTO);
     else
-      ZeWrapper::initRTASBuilder(ZeWrapper::INTERNAL);
+      ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::INTERNAL);
   }
+  else
+    ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
 
   if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
     std::cout << "using internal RTAS builder" << std::endl;
