@@ -51,45 +51,45 @@ jobs:
         cd intel-level-zero-gpu-raytracing-build
         dpkg-buildpackage -j`nproc --all` -B --no-sign -rfakeroot
 
-#  rhel_88-pkg-build:
-#     secrets: inherit
-#     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
-#     with:
-#       image: gfx-build/testinstall-rhel-8.8:3
-#       runs-on: '[ "Linux", "docker", "build" ]'
-#       artifact-out: rhel_88-pkg-build
-#       artifact-path: intel-level-zero-gpu-raytracing*.rpm
-#       pre-cmd: |
-#        dnf makecache
-#        dnf install -y git git-lfs rpmdevtools
-#       cmd: |
-#         VERSION="1.0.0"
-#         # Prep the source tar exactly like defined in spec file
-#         rm -rf /build/*
-#         mkdir -p /build/intel-level-zero-gpu-raytracing-$VERSION
-#         cp -r * /build/intel-level-zero-gpu-raytracing-$VERSION || true
-#         pushd /build/intel-level-zero-gpu-raytracing-$VERSION
-#         git clone -b v2021.6.0 https://github.com/oneapi-src/oneTBB.git tbb
-#         rm -rf ~/rpmbuild
-#         rpmdev-setuptree && cd /build
-#         tar czf ~/rpmbuild/SOURCES/intel-level-zero-gpu-raytracing-$VERSION.tar.gz intel-level-zero-gpu-raytracing-$VERSION
-#         cp -pr intel-level-zero-gpu-raytracing-$VERSION/rhel/intel-level-zero-gpu-raytracing.spec ~/rpmbuild/SPECS/intel-level-zero-gpu-raytracing.spec
-#
-#         # Build starts here
-#         # Build rpm src pkg first, ignoring dependencies because it's only source rpm
-#         rpmbuild -bs --nodeps '--define=dist .el8_8' ~/rpmbuild/SPECS/intel-level-zero-gpu-raytracing.spec
-#         #Make sure rpmbuild uses src tarball and not above created sources
-#         rm -rf ~/rpmbuild/SOURCES/intel-level-zero-gpu-raytracing-$VERSION.tar.gz
-#         # Build binary pkgs from source pkg, but first install dependencies
-#         dnf builddep -y ~/rpmbuild/SRPMS/*.src.rpm
-#         rpmbuild --rebuild '--define=dist .el8_8' --define='__cmake_builddir .' ~/rpmbuild/SRPMS/*.src.rpm
-#         # Test install the built package
-#         dnf install -y ~/rpmbuild/RPMS/*/*.rpm
-#         # Copy artifacts
-#         popd
-#         rm -rf ~/rpmbuild/RPMS/*/intel-level-zero-gpu-raytracing-debug*.rpm
-#         cp -pr ~/rpmbuild/RPMS/*/*.rpm .
-#         rm -rf ~/rpmbuild
+  rhel_86-pkg-build:
+     secrets: inherit
+     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+     with:
+       image: gfx-build/rhel-8.6:17
+       runs-on: '[ "Linux", "docker", "build" ]'
+       artifact-out: rhel_86-pkg-build
+       artifact-path: intel-level-zero-gpu-raytracing*.rpm
+       pre-cmd: |
+        dnf makecache
+        dnf install -y git git-lfs rpmdevtools
+       cmd: |
+         VERSION="1.0.0"
+         # Prep the source tar exactly like defined in spec file
+         rm -rf /build/*
+         mkdir -p /build/intel-level-zero-gpu-raytracing-$VERSION
+         cp -r * /build/intel-level-zero-gpu-raytracing-$VERSION || true
+         pushd /build/intel-level-zero-gpu-raytracing-$VERSION
+         git clone -b v2021.6.0 https://github.com/oneapi-src/oneTBB.git tbb
+         rm -rf ~/rpmbuild
+         rpmdev-setuptree && cd /build
+         tar czf ~/rpmbuild/SOURCES/intel-level-zero-gpu-raytracing-$VERSION.tar.gz intel-level-zero-gpu-raytracing-$VERSION
+         cp -pr intel-level-zero-gpu-raytracing-$VERSION/rhel/intel-level-zero-gpu-raytracing.spec ~/rpmbuild/SPECS/intel-level-zero-gpu-raytracing.spec
+
+         # Build starts here
+         # Build rpm src pkg first, ignoring dependencies because it's only source rpm
+         rpmbuild -bs --nodeps '--define=dist .el8_6' ~/rpmbuild/SPECS/intel-level-zero-gpu-raytracing.spec
+         #Make sure rpmbuild uses src tarball and not above created sources
+         rm -rf ~/rpmbuild/SOURCES/intel-level-zero-gpu-raytracing-$VERSION.tar.gz
+         # Build binary pkgs from source pkg, but first install dependencies
+         dnf builddep -y ~/rpmbuild/SRPMS/*.src.rpm
+         rpmbuild --rebuild '--define=dist .el8_6' --define='__cmake_builddir .' ~/rpmbuild/SRPMS/*.src.rpm
+         # Test install the built package
+         dnf install -y ~/rpmbuild/RPMS/*/*.rpm
+         # Copy artifacts
+         popd
+         rm -rf ~/rpmbuild/RPMS/*/intel-level-zero-gpu-raytracing-debug*.rpm
+         cp -pr ~/rpmbuild/RPMS/*/*.rpm .
+         rm -rf ~/rpmbuild
 
   sles_15sp4-pkg-build:
      secrets: inherit
