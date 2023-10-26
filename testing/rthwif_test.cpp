@@ -2050,7 +2050,7 @@ void* allocDispatchGlobals(sycl::device device, sycl::context context)
   return dispatchGlobalsPtr;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
   TestType test = TestType::TRIANGLES_COMMITTED_HIT;
   InstancingType inst = InstancingType::NONE;
@@ -2202,7 +2202,11 @@ int main(int argc, char* argv[])
       ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::INTERNAL);
   }
   else
-    ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
+  {
+    ze_result_t result = ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
+    if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
+      throw std::runtime_error("ze_intel_gpu_raytracing library not found");
+  }
 
   if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
     std::cout << "using internal RTAS builder" << std::endl;
@@ -2246,6 +2250,10 @@ int main(int argc, char* argv[])
 #endif
   
   return numErrors ? 1 : 0;
+}
+catch (std::runtime_error e) {
+  std::cerr << "std::runtime_error: " << e.what() << std::endl;
+  return 1;
 }
 
 #pragma clang diagnostic pop

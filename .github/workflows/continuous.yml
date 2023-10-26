@@ -142,7 +142,7 @@ jobs:
       env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env
       install-gfx-driver: false
       artifact-out: ze_raytracing-linux-test
-      artifact-path: ./build/intel-level-zero-rt-support*.tar.gz
+      artifact-path: ./build/intel-level-zero-gpu-raytracing*.tar.gz
       cmd: |
         mkdir build
         cd build
@@ -161,8 +161,8 @@ jobs:
       artifact-in: ze_raytracing-linux-test
       cmd: |
         cd build
-        tar xzf intel-level-zero-rt-support*.x86_64.linux.tar.gz
-        cd intel-level-zero-rt-support*.x86_64.linux
+        tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
+        cd intel-level-zero-gpu-raytracing*.x86_64.linux
         cd bin
         ctest
 
@@ -178,8 +178,8 @@ jobs:
       artifact-in: ze_raytracing-linux-test
       cmd: |
         cd build
-        tar xzf intel-level-zero-rt-support*.x86_64.linux.tar.gz
-        cd intel-level-zero-rt-support*.x86_64.linux
+        tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
+        cd intel-level-zero-gpu-raytracing*.x86_64.linux
         cd bin
         ctest
 
@@ -226,7 +226,7 @@ jobs:
       runs-on: '[ "Windows", "NAS", "build" ]'
       env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env
       install-gfx-driver: false
-      artifact-path: ./build/intel-level-zero-rt-support*.zip
+      artifact-path: ./build/intel-level-zero-gpu-raytracing*.zip
       artifact-out: ze_raytracing-windows-test
       shell: cmd
       cmd: |
@@ -246,8 +246,8 @@ jobs:
       shell: cmd
       cmd: |
         cd build || exit /b
-        unzip intel-level-zero-rt-support*.x64.windows.zip || exit /b
-        cd intel-level-zero-rt-support*.x64.windows || exit /b
+        unzip intel-level-zero-gpu-raytracing*.x64.windows.zip || exit /b
+        cd intel-level-zero-gpu-raytracing*.x64.windows || exit /b
         cd bin || exit /b
         ctest || exit /b
 

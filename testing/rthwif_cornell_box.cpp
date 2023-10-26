@@ -455,7 +455,7 @@ void render(unsigned int x, unsigned int y, void* bvh, unsigned int* pixels, uns
   pixels[y*width+x] = (b << 16) + (g << 8) + r;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
   /* use can specify reference image to compare against */
 #if defined(EMBREE_SYCL_L0_RTAS_BUILDER)
@@ -535,7 +535,11 @@ int main(int argc, char* argv[])
       ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::INTERNAL);
   }
   else
-    ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
+  {
+    ze_result_t result = ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
+    if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
+      throw std::runtime_error("ze_intel_gpu_raytracing library not found");
+  }
 
   if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
     std::cout << "using internal RTAS builder" << std::endl;
@@ -604,4 +608,8 @@ int main(int argc, char* argv[])
   else    std::cout << "[FAILED]" << std::endl;
 
   return ok ? 0 : 1;
+}
+catch (std::runtime_error e) {
+  std::cerr << "std::runtime_error: " << e.what() << std::endl;
+  return 1;
 }

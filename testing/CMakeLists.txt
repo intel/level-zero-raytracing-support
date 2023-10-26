@@ -6,6 +6,11 @@
 
 SET(CMAKE_CXX_STANDARD 17)
 
+SET(CTEST_TEST_FILE_ROOT "${CMAKE_BINARY_DIR}/CTestTestfile.root")
+file(WRITE "${CTEST_TEST_FILE_ROOT}" "# CTestTestfile.cmake self generated for package testing\n")
+file(APPEND "${CTEST_TEST_FILE_ROOT}" "subdirs(\"bin\")\n")
+INSTALL(FILES   "${CTEST_TEST_FILE_ROOT}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." RENAME "CTestTestfile.cmake" COMPONENT test)
+
 SET(CMAKE_INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
 SET(CTEST_TEST_FILE "${CMAKE_BINARY_DIR}/CTestTestfile.install")
 file(WRITE "${CTEST_TEST_FILE}" "# CTestTestfile.cmake self generated for package testing\n")
