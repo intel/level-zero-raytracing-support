@@ -1,0 +1,7 @@
+{
+  "level-zero-gpu-raytracing-test": {
+    "api": "L0",
+    "commandLine": "ctest -VV",
+    "functionalCheck": ["100% tests passed, 0 tests failed"]
+  }
+}

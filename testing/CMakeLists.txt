@@ -9,7 +9,8 @@ SET(CMAKE_CXX_STANDARD 17)
 SET(CTEST_TEST_FILE_ROOT "${CMAKE_BINARY_DIR}/CTestTestfile.root")
 file(WRITE "${CTEST_TEST_FILE_ROOT}" "# CTestTestfile.cmake self generated for package testing\n")
 file(APPEND "${CTEST_TEST_FILE_ROOT}" "subdirs(\"bin\")\n")
-INSTALL(FILES   "${CTEST_TEST_FILE_ROOT}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." RENAME "CTestTestfile.cmake" COMPONENT test)
+INSTALL(FILES "${CTEST_TEST_FILE_ROOT}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." RENAME "CTestTestfile.cmake" COMPONENT test)
+INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/abn_metadata.json" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test)
 
 SET(CMAKE_INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
 SET(CTEST_TEST_FILE "${CMAKE_BINARY_DIR}/CTestTestfile.install")
@@ -95,7 +96,6 @@ INSTALL(FILES   "${CMAKE_CURRENT_SOURCE_DIR}/cornell_box_reference.tga" DESTINAT
 INSTALL(TARGETS embree_rthwif_test RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
 
 INSTALL(FILES   "${CTEST_TEST_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME "CTestTestfile.cmake" COMPONENT test)
-
 
 ##############################################################
 # Install SYCL specific files
