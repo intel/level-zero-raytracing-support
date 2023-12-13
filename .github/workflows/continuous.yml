@@ -251,16 +251,6 @@ jobs:
         cd bin || exit /b
         ctest || exit /b
 
-  static-analysis-klocwork:
-    secrets: inherit
-    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
-    with:
-      project: ze_raytracing_support
-      coverity: false
-      prebuild: |
-        cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_STATIC=ON
-      build: cmake --build build
-
   static-analysis-coverity:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
@@ -287,7 +277,6 @@ jobs:
       - ze_raytracing-windows-V142-ReleaseInternal
       - ze_raytracing-windows-test
       - ze_raytracing-windows-test-DG2
-      - static-analysis-klocwork
       - static-analysis-coverity
     if: failure() || cancelled()
     steps:
