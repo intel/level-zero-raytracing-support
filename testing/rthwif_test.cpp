@@ -2057,11 +2057,11 @@ int main(int argc, char* argv[]) try
   BuildMode buildMode = BuildMode::BUILD_EXPECTED_SIZE;
 
 #if defined(EMBREE_SYCL_L0_RTAS_BUILDER)
-  ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::AUTO;
+  ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::LEVEL_ZERO;
 #else
   ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::INTERNAL;
 #endif
-    
+  
   bool jit_cache = false;
   uint32_t numThreads = tbb::this_task_arena::max_concurrency();
   
@@ -2164,7 +2164,7 @@ int main(int argc, char* argv[]) try
   tbb::task_scheduler_init tbb_threads(tbb::task_scheduler_init::deferred);
   tbb_threads.initialize(int(numThreads));
 #endif
-    
+
   /* initialize SYCL device */
   device = sycl::device(sycl::gpu_selector_v);
   sycl::queue queue = sycl::queue(device,exception_handler);
@@ -2177,6 +2177,7 @@ int main(int argc, char* argv[]) try
   /* execute test */
   RandomSampler_init(rng,0x56FE238A);
 
+  ze_result_t result = ZE_RESULT_SUCCESS;
   sycl::platform platform = device.get_platform();
   ze_driver_handle_t hDriver = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(platform);
 
@@ -2185,7 +2186,7 @@ int main(int argc, char* argv[]) try
   {
     uint32_t count = 0;
     std::vector<ze_driver_extension_properties_t> extensions;
-    ze_result_t result = ZeWrapper::zeDriverGetExtensionProperties(hDriver,&count,extensions.data());
+    result = ZeWrapper::zeDriverGetExtensionProperties(hDriver,&count,extensions.data());
     if (result != ZE_RESULT_SUCCESS)
       throw std::runtime_error("zeDriverGetExtensionProperties failed");
     
@@ -2202,17 +2203,19 @@ int main(int argc, char* argv[]) try
     }
 
     if (ze_rtas_builder)
-      ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::AUTO);
+      result = ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::AUTO);
     else
-      ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::INTERNAL);
+      result = ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::INTERNAL);
   }
   else
-  {
-    ze_result_t result = ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
-    if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
-      throw std::runtime_error("ze_intel_gpu_raytracing library not found");
-  }
+    result = ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
 
+  if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
+    throw std::runtime_error("cannot load ZE_experimental_rtas_builder extension");
+  
+  if (result != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("cannot initialize ZE_experimental_rtas_builder extension");
+  
   if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
     std::cout << "using internal RTAS builder" << std::endl;
   else

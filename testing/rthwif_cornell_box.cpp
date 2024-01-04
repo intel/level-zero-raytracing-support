@@ -427,7 +427,7 @@ void render(unsigned int x, unsigned int y, void* bvh, unsigned int* pixels, uns
     pixels[y*width+x] = 0;
     return;
   }
-  
+
   /* fixed camera */
   sycl::float3 vx(-1.f, -0.f, -0.f);
   sycl::float3 vy(-0.f, -1.f, -0.f);
@@ -469,7 +469,7 @@ int main(int argc, char* argv[]) try
 {
   /* use can specify reference image to compare against */
 #if defined(EMBREE_SYCL_L0_RTAS_BUILDER)
-  ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::AUTO;
+  ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::LEVEL_ZERO;
 #else
   ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::INTERNAL;
 #endif
@@ -515,6 +515,7 @@ int main(int argc, char* argv[]) try
     return 1;
   }
 
+  ze_result_t result = ZE_RESULT_SUCCESS;
   sycl::platform platform = device.get_platform();
   ze_driver_handle_t hDriver = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(platform);
 
@@ -523,7 +524,7 @@ int main(int argc, char* argv[]) try
   {
     uint32_t count = 0;
     std::vector<ze_driver_extension_properties_t> extensions;
-    ze_result_t result = ZeWrapper::zeDriverGetExtensionProperties(hDriver,&count,extensions.data());
+    result = ZeWrapper::zeDriverGetExtensionProperties(hDriver,&count,extensions.data());
     if (result != ZE_RESULT_SUCCESS)
       throw std::runtime_error("zeDriverGetExtensionProperties failed");
     
@@ -540,17 +541,19 @@ int main(int argc, char* argv[]) try
     }
 
     if (ze_rtas_builder)
-      ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::AUTO);
+      result = ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::AUTO);
     else
-      ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::INTERNAL);
+      result = ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::INTERNAL);
   }
   else
-  {
-    ze_result_t result = ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
-    if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
-      throw std::runtime_error("ze_intel_gpu_raytracing library not found");
-  }
+    result = ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
 
+  if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
+    throw std::runtime_error("cannot load ZE_experimental_rtas_builder extension");
+  
+  if (result != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("cannot initialize ZE_experimental_rtas_builder extension");
+  
   if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
     std::cout << "using internal RTAS builder" << std::endl;
   else
@@ -610,7 +613,7 @@ int main(int argc, char* argv[]) try
   /* store image to disk */
   storeTga(pixels,width,height,"cornell_box.tga");
   if (!reference_img) return 0;
-  
+
   /* compare to reference image */
   const size_t err = compareTga("cornell_box.tga", "cornell_box_reference.tga");
   std::cout << "difference to reference image is " << err << std::endl;
