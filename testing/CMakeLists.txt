@@ -16,7 +16,7 @@ ENDFUNCTION()
 IF (WIN32)
   ADD_ABN_TEST("level-zero-gpu-raytracing-test" "run.bat" "0 tests failed")
 ELSE()
-  ADD_ABN_TEST("level-zero-gpu-raytracing-test" "run.sh" "100% tests passed, 0 tests failed")
+  ADD_ABN_TEST("level-zero-gpu-raytracing-test" "run.sh" "0 tests failed")
 ENDIF()
 
 INSTALL(FILES "${ABN_TEST_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test)
@@ -40,6 +40,7 @@ FUNCTION(ADD_BAT_TEST)
   FILE(APPEND "${BAT_TEST_FILE}" ") else (\n  echo Test ${BAT_TEST_NAME} failed!\n  set /a errors=errors+1\n)\n\n")
   FILE(APPEND "${BAT_TEST_FILE}" "echo:\n")
   FILE(APPEND "${BAT_TEST_FILE}" "echo:\n")
+  FILE(APPEND "${BAT_TEST_FILE}" "\n")
 ENDFUNCTION()
 
 FUNCTION(FINALIZE_BAT_TEST)
@@ -48,11 +49,40 @@ FUNCTION(FINALIZE_BAT_TEST)
   FILE(APPEND "${BAT_TEST_FILE}" "if %errors% neq 0 exit /b 1\n")
 ENDFUNCTION()
 
-# install windows batch test file or linux shell script which invokes ctest
+# creation of Linux batch test file
+SET(SHELL_TEST_FILE "${CMAKE_BINARY_DIR}/run.sh")
+FILE(WRITE "${SHELL_TEST_FILE}" "#!/bin/bash\n")
+FILE(APPEND "${SHELL_TEST_FILE}" "errors=0\n")
+FILE(APPEND "${SHELL_TEST_FILE}" "cd bin\n")
+FILE(APPEND "${SHELL_TEST_FILE}" "\n")
+
+FUNCTION(ADD_SHELL_TEST)
+  CMAKE_PARSE_ARGUMENTS(SHELL_TEST "" "NAME" "COMMAND" ${ARGN})
+  LIST(POP_FRONT SHELL_TEST_COMMAND CMD)
+  LIST(PREPEND SHELL_TEST_COMMAND "./${CMD}")
+  STRING(REPLACE ";" " " SHELL_TEST_COMMAND_STR "${SHELL_TEST_COMMAND}")
+  FILE(APPEND "${SHELL_TEST_FILE}" "echo Executing test ${SHELL_TEST_NAME}\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "echo ${SHELL_TEST_COMMAND_STR}\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "${SHELL_TEST_COMMAND_STR}\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "if (($? == 0)); then\n  echo Test ${SHELL_TEST_NAME} passed!\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "else\n  echo Test ${SHELL_TEST_NAME} failed!\n  ((errors++))\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "fi\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "echo\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "echo\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "\n")
+ENDFUNCTION()
+
+FUNCTION(FINALIZE_SHELL_TEST)
+  FILE(APPEND "${SHELL_TEST_FILE}" "cd ..\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "echo $errors tests failed\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "if (($errors != 0)); then exit 1; fi\n")
+ENDFUNCTION()
+
+# install windows batch test file or linux shell script
 IF (WIN32)
   INSTALL(FILES "${BAT_TEST_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test)
 ELSE()
-  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/run.sh" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test
+  INSTALL(FILES "${SHELL_TEST_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test
           PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 ENDIF()
 
@@ -76,6 +106,7 @@ ENDFUNCTION()
 FUNCTION(MY_ADD_TEST)
   ADD_CTEST_TEST(${ARGN})
   ADD_BAT_TEST(${ARGN})
+  ADD_SHELL_TEST(${ARGN})
 ENDFUNCTION()
 
 GET_FILENAME_COMPONENT(SYCL_COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
@@ -143,6 +174,7 @@ MY_ADD_TEST(NAME rthwif_test_swinstancing_triangles_anyhit_shader_reject COMMAND
 MY_ADD_TEST(NAME rthwif_test_swinstancing_procedurals_committed_hit      COMMAND embree_rthwif_test ${RTAS_BUILDER_MODE} --sw-instancing --procedurals-committed-hit)
 
 FINALIZE_BAT_TEST()
+FINALIZE_SHELL_TEST()
 
 INSTALL(TARGETS embree_rthwif_cornell_box RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
 INSTALL(FILES   "${CMAKE_CURRENT_SOURCE_DIR}/cornell_box_reference.tga" DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
