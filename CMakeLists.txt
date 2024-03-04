@@ -26,7 +26,7 @@ SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 # Build configurations to use
-SET(CMAKE_BUILD_TYPE "ReleaseInternal" CACHE STRING "Specifies the build type." FORCE)
+SET(CMAKE_BUILD_TYPE "ReleaseInternal" CACHE STRING "Specifies the build type.")
 SET_PROPERTY(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release ReleaseInternal)
 SET(CMAKE_CONFIGURATION_TYPES "Debug;Release;ReleaseInternal" CACHE STRING "List of generated configurations." FORCE)
 
