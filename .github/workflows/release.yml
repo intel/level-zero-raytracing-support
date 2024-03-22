@@ -3,6 +3,8 @@
 
 name: release
 
+permissions: read-all
+
 on: [push, workflow_dispatch]
 
 jobs:
