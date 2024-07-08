@@ -3,6 +3,8 @@
 
 #include "rttrace_validation.h"
 
+#include <math.h>
+
 #define sizeof_QBVH6_InternalNode6 64
 #define QBVH6_rootNodeOffset 128
 
