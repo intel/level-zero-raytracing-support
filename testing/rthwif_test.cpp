@@ -228,6 +228,16 @@ void compareTestOutput(uint32_t tid, uint32_t& errors, const TestOutput& test, c
       errors++;                                                         \
     }                                                                   \
   }
+#define COMPARE3F(member,eps) {                                          \
+    const bool x = fabs(test.member.x-expected.member.x) > eps;     \
+    const bool y = fabs(test.member.y-expected.member.y) > eps;     \
+    const bool z = fabs(test.member.z-expected.member.z) > eps;     \
+    if (x || y || z) {                                                  \
+      if (errors < 16)                                                  \
+        std::cout << "test" << tid << " " #member " mismatch: output " << test.member << " != expected " << expected.member << std::endl; \
+      errors++;                                                         \
+    }                                                                   \
+  }
 #define COMPARE3I(member,eps) {                                          \
     const bool x = test.member.x != expected.member.x;     \
     const bool y = test.member.y != expected.member.y;     \
@@ -265,10 +275,10 @@ void compareTestOutput(uint32_t tid, uint32_t& errors, const TestOutput& test, c
   COMPARE3(v0,eps);
   COMPARE3(v1,eps);
   COMPARE3(v2,eps);
-  COMPARE3I(world_to_object.vx,eps);
-  COMPARE3I(world_to_object.vy,eps);
-  COMPARE3I(world_to_object.vz,eps);
-  COMPARE3I(world_to_object.p ,eps);
+  COMPARE3F(world_to_object.vx,eps);
+  COMPARE3F(world_to_object.vy,eps);
+  COMPARE3F(world_to_object.vz,eps);
+  COMPARE3F(world_to_object.p ,eps);
   COMPARE3I(object_to_world.vx,eps);
   COMPARE3I(object_to_world.vy,eps);
   COMPARE3I(object_to_world.vz,eps);
