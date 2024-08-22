@@ -60,3 +60,18 @@ jobs:
       artifact-in-windows: release-ze_raytracing-windows-V142
       artifact-in-linux:   release-ze_raytracing-ubuntu22_04-GCC
       path: "build/*.zip build/*.gz"
+
+  success-release:
+    runs-on: ubuntu-latest
+    needs:
+      - release-ze_raytracing-ubuntu22_04-GCC
+      - release-ze_raytracing-windows-V142
+      - binary-analysis
+      - antivirus-scan
+
+    if: failure() || cancelled()
+    steps:
+      - name: Failure
+        run: |
+          echo "::notice title=Success::Workflow failed"
+          exit 1
