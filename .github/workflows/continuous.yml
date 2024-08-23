@@ -109,36 +109,36 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "dg2", "vis-rpl-dg2-04" ]'
+      runs-on: '[ "Windows", "NAS", "build" ]'
       shell: cmd
       cmd: |
         mkdir build || exit /b
         cd build || exit /b
-        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" .. || exit /b
+        cmake -G "Visual Studio 17 2022" -A "x64" .. || exit /b
         cmake --build . --config Debug --target package || exit /b
 
   ze_raytracing-windows-V142-Release:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "dg2", "vis-rpl-dg2-04" ]'
+      runs-on: '[ "Windows", "NAS", "build" ]'
       shell: cmd
       cmd: |
         mkdir build || exit /b
         cd build || exit /b
-        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" .. || exit /b
+        cmake -G "Visual Studio 17 2022" -A "x64" .. || exit /b
         cmake --build . --config Release --target package || exit /b
 
   ze_raytracing-windows-V142-ReleaseInternal:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "dg2", "vis-rpl-dg2-05" ]'
+      runs-on: '[ "Windows", "NAS", "build" ]'
       shell: cmd
       cmd: |
         mkdir build || exit /b
         cd build || exit /b
-        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" .. || exit /b
+        cmake -G "Visual Studio 17 2022" -A "x64" .. || exit /b
         cmake --build . --config ReleaseInternal --target package || exit /b
 
   ze_raytracing-windows-test:

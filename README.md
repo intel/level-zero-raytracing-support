@@ -27,7 +27,7 @@ To compile the library under Windows execute:
 
   cd build
 
-  cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" -D CMAKE_BUILD_TYPE=Release ..
+  cmake -G "Visual Studio 17 2022" -A "x64" -D CMAKE_BUILD_TYPE=Release ..
 
   cmake --build . --target package
 

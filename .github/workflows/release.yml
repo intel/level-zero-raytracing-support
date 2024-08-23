@@ -27,14 +27,14 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "dg2", "vis-rpl-dg2-04" ]'
+      runs-on: '[ "Windows", "NAS", "build" ]'
       artifact-path: ./build
       artifact-out: release-ze_raytracing-windows-V142
       shell: cmd
       cmd: |
         mkdir build
         cd build
-        cmake -G "Visual Studio 16 2019" -T "V142" -A "x64" ..
+        cmake -G "Visual Studio 17 2022" -T "V142" -A "x64" ..
         cmake --build . --config ReleaseInternal --target package
 
   binary-analysis:
