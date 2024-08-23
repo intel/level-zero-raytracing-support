@@ -74,7 +74,7 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "dg2" ]'
+      runs-on: '[ "Windows", "NAS", "dg2", "vis-rpl-dg2-04" ]'
       shell: cmd
       cmd: |
         mkdir build || exit /b
@@ -86,7 +86,7 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "dg2" ]'
+      runs-on: '[ "Windows", "NAS", "dg2", "vis-rpl-dg2-04" ]'
       shell: cmd
       cmd: |
         mkdir build || exit /b
@@ -98,7 +98,7 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "dg2" ]'
+      runs-on: '[ "Windows", "NAS", "dg2", "vis-rpl-dg2-05" ]'
       shell: cmd
       cmd: |
         mkdir build || exit /b
