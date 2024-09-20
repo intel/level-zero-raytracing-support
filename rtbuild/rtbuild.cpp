@@ -102,7 +102,7 @@ namespace embree
   {
     if (geom->pTransform == nullptr) throw std::runtime_error("no instance transformation specified");
     if (geom->pBounds == nullptr) throw std::runtime_error("no acceleration structure bounds specified");
-    if (geom->pAccelerationStructure == nullptr) throw std::runtime_error("no acceleration structure to instanciate specified");
+    if (geom->pAccelerationStructure == nullptr) throw std::runtime_error("no acceleration structure to instantiate specified");
   }
 
   inline bool buildBounds(const ze_rtas_builder_triangles_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
