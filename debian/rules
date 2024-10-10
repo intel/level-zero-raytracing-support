@@ -6,4 +6,10 @@
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_PREFIX=/usr
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DZE_RAYTRACING_TBB_STATIC=OFF
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf build/
+	rm level_zero_raytracing.rc || true
