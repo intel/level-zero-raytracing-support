@@ -19,7 +19,7 @@ Architecture: amd64
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
- level-zero
+ level-zero (>=1.17.44) | libze1 (>=1.17.44)
 Description: oneAPI Level Zero Ray Tracing Support
  .
  The oneAPI Level Zero Ray Tracing Support library implements high performance CPU
