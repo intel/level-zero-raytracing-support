@@ -10,8 +10,7 @@ Build-Depends: debhelper (>= 11),
  gcc,
  git,
  libpthread-stubs0-dev,
- libtbb-dev,
- libze1
+ libtbb-dev
 Standards-Version: 4.3.0
 Homepage: https://github.com/intel/level-zero-raytracing-support
 
@@ -20,6 +19,7 @@ Architecture: amd64
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
+ level-zero
 Description: oneAPI Level Zero Ray Tracing Support
  .
  The oneAPI Level Zero Ray Tracing Support library implements high performance CPU
