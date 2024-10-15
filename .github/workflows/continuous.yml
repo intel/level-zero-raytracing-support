@@ -84,7 +84,7 @@ jobs:
       cmd: |
         mkdir build
         cd build
-        cmake -G Ninja -D CMAKE_BUILD_TYPE=ReleaseInternal -D CMAKE_CXX_COMPILER=icpx -D CMAKE_C_COMPILER=icx -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER ..
+        cmake -G Ninja -D CMAKE_BUILD_TYPE=ReleaseInternal -D CMAKE_CXX_COMPILER=icpx -D CMAKE_C_COMPILER=icx -D ZE_RAYTRACING_TBB_STATIC=OFF -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER ..
         cmake --build . --target package
 
   ze_raytracing-linux-ICX-test-DG2:
