@@ -1987,6 +1987,7 @@ uint32_t executeBuildTest(sycl::device& device, sycl::queue& queue, sycl::contex
 {
   uint32_t numErrors = 0;
   for (uint32_t i=0; i<128; i++) {
+
     const uint32_t numPrimitives = i>10 ? i*i : i;
     std::cout << "testing " << numPrimitives << " primitives" << std::endl;
     numErrors += executeBuildTest(device,queue,context,test,buildMode,numPrimitives,i);
@@ -2231,17 +2232,27 @@ int main(int argc, char* argv[]) try
   else
     std::cout << "using Level Zero RTAS builder" << std::endl;
 
+  /* get acceleration structure format for this device */
+  ze_device_handle_t  hDevice  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
+  ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
+  ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
+  ze_result_t err = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
+  if (err != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("zeDeviceGetProperties failed");
+
+  std::cout << "RTAS format = " << rtasProp.rtasFormat << std::endl;
+  std::cout << "RTAS alignment = " << rtasProp.rtasBufferAlignment << std::endl;
     
   /* create L0 builder object */
   ze_rtas_builder_exp_desc_t builderDesc = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXP_DESC };
-  ze_result_t err = ZeWrapper::zeRTASBuilderCreateExp(hDriver, &builderDesc, &hBuilder);
+  err = ZeWrapper::zeRTASBuilderCreateExp(hDriver, &builderDesc, &hBuilder);
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("ze_rtas_builder creation failed");
 
   err = ZeWrapper::zeRTASParallelOperationCreateExp(hDriver,&parallelOperation);
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("parallel operation creation failed");
-  
+
   uint32_t numErrors = 0;
   if (test >= TestType::BENCHMARK_TRIANGLES)
     numErrors = executeBenchmark(device,queue,context,test);

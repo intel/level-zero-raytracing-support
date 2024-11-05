@@ -559,6 +559,17 @@ int main(int argc, char* argv[]) try
   else
     std::cout << "using Level Zero RTAS builder" << std::endl;
 
+  /* get acceleration structure format for this device */
+  ze_device_handle_t  hDevice  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
+  ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
+  ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
+  result = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
+  if (result != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("zeDeviceGetProperties failed");
+
+  std::cout << "RTAS format = " << rtasProp.rtasFormat << std::endl;
+  std::cout << "RTAS alignment = " << rtasProp.rtasBufferAlignment << std::endl;
+
 #if defined(ZE_RAYTRACING_RT_SIMULATION)
   RTCore::Init();
   RTCore::SetXeVersion((RTCore::XeVersion)ZE_RAYTRACING_DEVICE);
