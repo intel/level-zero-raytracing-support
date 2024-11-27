@@ -23,41 +23,41 @@ jobs:
         cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=ReleaseInternal ..
         cmake --build . --target package
 
-  release-ze_raytracing-windows-V142:
+  release-ze_raytracing-windows-VS2022:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
       runs-on: '[ "Windows", "NAS", "build" ]'
       artifact-path: ./build
-      artifact-out: release-ze_raytracing-windows-V142
+      artifact-out: release-ze_raytracing-windows-VS2022
       shell: cmd
       cmd: |
         mkdir build
         cd build
-        cmake -G "Visual Studio 17 2022" -T "V142" -A "x64" ..
+        cmake -G "Visual Studio 17 2022" -A "x64" ..
         cmake --build . --config ReleaseInternal --target package
 
   binary-analysis:
     needs:
       - release-ze_raytracing-ubuntu22_04-GCC
-      - release-ze_raytracing-windows-V142
+      - release-ze_raytracing-windows-VS2022
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/binary_analysis.yml@main
     with:
       project: embree
-      artifact-in-windows: release-ze_raytracing-windows-V142
+      artifact-in-windows: release-ze_raytracing-windows-VS2022
       artifact-in-linux:   release-ze_raytracing-ubuntu22_04-GCC
       path: "build/*.zip build/*.gz"
 
   antivirus-scan:
     needs:
       - release-ze_raytracing-ubuntu22_04-GCC
-      - release-ze_raytracing-windows-V142
+      - release-ze_raytracing-windows-VS2022
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/antivirus_scan.yml@main
     with:
       project: embree
-      artifact-in-windows: release-ze_raytracing-windows-V142
+      artifact-in-windows: release-ze_raytracing-windows-VS2022
       artifact-in-linux:   release-ze_raytracing-ubuntu22_04-GCC
       path: "build/*.zip build/*.gz"
 
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - release-ze_raytracing-ubuntu22_04-GCC
-      - release-ze_raytracing-windows-V142
+      - release-ze_raytracing-windows-VS2022
       - binary-analysis
       - antivirus-scan
 

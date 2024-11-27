@@ -105,7 +105,7 @@ jobs:
         cd bin
         LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:. ctest
 
-  ze_raytracing-windows-V142-Debug:
+  ze_raytracing-windows-VS2022-Debug:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
@@ -117,7 +117,7 @@ jobs:
         cmake -G "Visual Studio 17 2022" -A "x64" .. || exit /b
         cmake --build . --config Debug --target package || exit /b
 
-  ze_raytracing-windows-V142-Release:
+  ze_raytracing-windows-VS2022-Release:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
@@ -129,7 +129,7 @@ jobs:
         cmake -G "Visual Studio 17 2022" -A "x64" .. || exit /b
         cmake --build . --config Release --target package || exit /b
 
-  ze_raytracing-windows-V142-ReleaseInternal:
+  ze_raytracing-windows-VS2022-ReleaseInternal:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
@@ -193,9 +193,9 @@ jobs:
       - ze_raytracing-linux-DPCPP-test-PVC
       - ze_raytracing-linux-ICX-test
       - ze_raytracing-linux-ICX-test-DG2
-      - ze_raytracing-windows-V142-Debug
-      - ze_raytracing-windows-V142-Release
-      - ze_raytracing-windows-V142-ReleaseInternal
+      - ze_raytracing-windows-VS2022-Debug
+      - ze_raytracing-windows-VS2022-Release
+      - ze_raytracing-windows-VS2022-ReleaseInternal
       - ze_raytracing-windows-test
       - ze_raytracing-windows-test-DG2
       - static-analysis-coverity
