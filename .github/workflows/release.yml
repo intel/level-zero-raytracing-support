@@ -27,10 +27,9 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "build" ]'
+      runs-on: '[ "Windows", "build" ]'
       artifact-path: ./build
       artifact-out: release-ze_raytracing-windows-VS2022
-      shell: cmd
       cmd: |
         mkdir build
         cd build

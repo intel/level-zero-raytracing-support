@@ -109,69 +109,66 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "build" ]'
-      shell: cmd
+      runs-on: '[ "Windows", "build" ]'
       cmd: |
-        mkdir build || exit /b
-        cd build || exit /b
-        cmake -G "Visual Studio 17 2022" -A "x64" .. || exit /b
-        cmake --build . --config Debug --target package || exit /b
+        mkdir build
+        cd build
+        cmake -G "Visual Studio 17 2022" -A "x64" ..
+        cmake --build . --config Debug --target package
 
   ze_raytracing-windows-VS2022-Release:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "build" ]'
-      shell: cmd
+      runs-on: '[ "Windows", "build" ]'
       cmd: |
-        mkdir build || exit /b
-        cd build || exit /b
-        cmake -G "Visual Studio 17 2022" -A "x64" .. || exit /b
-        cmake --build . --config Release --target package || exit /b
+        mkdir build
+        cd build
+        cmake -G "Visual Studio 17 2022" -A "x64" ..
+        cmake --build . --config Release --target package
 
   ze_raytracing-windows-VS2022-ReleaseInternal:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "build" ]'
-      shell: cmd
+      runs-on: '[ "Windows", "build" ]'
       cmd: |
-        mkdir build || exit /b
-        cd build || exit /b
-        cmake -G "Visual Studio 17 2022" -A "x64" .. || exit /b
-        cmake --build . --config ReleaseInternal --target package || exit /b
+        mkdir build
+        cd build
+        cmake -G "Visual Studio 17 2022" -A "x64" ..
+        cmake --build . --config ReleaseInternal --target package
 
   ze_raytracing-windows-test:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
-      runs-on: '[ "Windows", "NAS", "build" ]'
+      runs-on: '[ "Windows", "build" ]'
       env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env
       artifact-path: ./build/intel-level-zero-gpu-raytracing*.zip
       artifact-out: ze_raytracing-windows-test
-      shell: cmd
       cmd: |
-        mkdir build || exit /b
-        cd build || exit /b
-        cmake -G Ninja -D CMAKE_BUILD_TYPE=ReleaseInternal -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER .. || exit /b
-        cmake --build . --target package || exit /b
+        mkdir build
+        cd build
+        cmake -G Ninja -D CMAKE_BUILD_TYPE=ReleaseInternal -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D ZE_RAYTRACING_SYCL_TESTS=INTERNAL_RTAS_BUILDER ..
+        cmake --build . --target package
 
   ze_raytracing-windows-test-DG2:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     needs: ["ze_raytracing-windows-test"]
     with:
-      runs-on: '[ "Windows", "NAS", "dg2" ]'
+      runs-on: '[ "Windows", "dg2" ]'
       env-from-files: ./.github/workflows/gfx-windows-internal.env
       artifact-in: ze_raytracing-windows-test
-      shell: cmd
       cmd: |
-        cd build || exit /b
-        unzip intel-level-zero-gpu-raytracing*.x64.windows.zip || exit /b
-        cd intel-level-zero-gpu-raytracing*.x64.windows || exit /b
-        .\run.bat || exit /b
-        cd bin || exit /b
-        ctest || exit /b
+        cd build
+        unzip intel-level-zero-gpu-raytracing*.x64.windows.zip
+        cd intel-level-zero-gpu-raytracing*.x64.windows
+        .\run.bat
+        if ($LASTEXITCODE -ne 0) { throw "Command failed" }
+        cd bin
+        ctest
+        if ($LASTEXITCODE -ne 0) { throw "Command failed" }
 
   static-analysis-coverity:
     secrets: inherit
