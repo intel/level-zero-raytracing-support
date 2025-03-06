@@ -1,3 +1,9 @@
+intel-level-zero-gpu-raytracing (1.1.0) UNRELEASED; urgency=medium
+
+  * Added support for PTL RTAS layout.
+
+ -- Sven Woop <sven.woop@intel.com>  Thu, 06 Mar 2025 08:22:00 +0100
+
 intel-level-zero-gpu-raytracing (1.0.0) UNRELEASED; urgency=medium
 
   * Sync debian folder from upstream

@@ -15,7 +15,7 @@
 # Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 #it's changed by external script
-%global ver 1.0.0
+%global ver 1.1.0
 %global rel 1
 
 Name: intel-level-zero-gpu-raytracing
@@ -68,5 +68,7 @@ cd build
 %doc
 
 %changelog
+* Thu Mar 6 2025 Sven Woop <sven.woop@intel.com> - 1.1.0
+- Added support for PTL RTAS layout.
 * Thu Jun 8 2023 Pavel Androniychuk <pavel.androniychuk@intel.com> - 1.0.0
 - Spec file init
