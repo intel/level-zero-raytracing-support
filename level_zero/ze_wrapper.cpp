@@ -272,7 +272,7 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
   pProperties->flags = 0;
   pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_INVALID;
   pProperties->rtasBufferAlignment = 128;
-  
+
   /* check for supported device ID */
   ze_device_properties_t device_props{ ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES };
   ze_result_t status = ZeWrapper::zeDeviceGetProperties(hDevice, &device_props);
@@ -326,6 +326,32 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
   
   if (mtl) {
     pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    return ZE_RESULT_SUCCESS;
+  }
+
+  /* LNL */
+  bool lnl = 
+    device_id == 0x64A0 ||
+    device_id == 0x6420;
+  
+  if (lnl) {
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    return ZE_RESULT_SUCCESS;
+  }
+  
+  /* PTL */
+  bool ptl =
+    device_id == 0xB080 ||
+    device_id == 0xB081 ||
+    device_id == 0xB082 ||
+    device_id == 0xB083 ||
+    device_id == 0xB08F ||
+    device_id == 0xB090 ||
+    device_id == 0xB0A0 ||
+    device_id == 0xB0B0;
+  
+  if (ptl) {
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_2;
     return ZE_RESULT_SUCCESS;
   }
   

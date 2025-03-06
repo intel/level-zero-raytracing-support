@@ -522,6 +522,139 @@ namespace embree
 
   static_assert(sizeof(InstanceLeaf) == 128, "InstanceLeaf must be 128 bytes large");
 
+  
+  /* Instance leaf layout for Xe3 */
+  
+  struct InstanceLeafV2
+  {
+    InstanceLeafV2() {}
+    
+    InstanceLeafV2 (AffineSpace3f obj2world, uint64_t startNodePtr, uint32_t instID, uint32_t instUserID, uint8_t instMask)
+    {
+      part0.instanceContributionToHitGroupIndex = 0;
+      part0.geomMask = instMask;
+      part0.instFlags = (InstanceFlags) 0;
+      part0.ComparisonMode = 0;
+      part0.ComparisonValue = 0;
+      part0.pad0 = 0;
+      part0.subType = SUB_TYPE_PROCEDURAL;
+      part0.pad1 = 0;
+      part0.DisableOpacityCull = PrimLeafDesc::TYPE_OPACITY_CULLING_ENABLED;
+      part0.OpaqueGeometry = 0;
+      part0.IgnoreRayMultiplier = 0;
+      part0.startNodePtr = startNodePtr;
+        
+      part1.instanceID = instUserID;
+      part1.instanceIndex = instID;
+      part1.bvhPtr = (uint64_t) 0;
+      part1.pad = 0;
+
+      part1.obj2world_vx = obj2world.l.vx;
+      part1.obj2world_vy = obj2world.l.vy;
+      part1.obj2world_vz = obj2world.l.vz;
+      part0.obj2world_p = obj2world.p;
+      
+      const AffineSpace3f world2obj = rcp(obj2world);
+      part0.world2obj_vx = world2obj.l.vx;
+      part0.world2obj_vy = world2obj.l.vy;
+      part0.world2obj_vz = world2obj.l.vz;
+      part1.world2obj_p = world2obj.p;
+    }
+
+    /* Returns the address of the start node pointer. We need this
+     * address to calculate relocation tables when dumping the BVH to
+     * disk. */
+    const uint64_t startNodePtrAddr() const {
+      return (uint64_t)((char*)&part0 + 8);
+    }
+
+    /* Returns the address of the BVH that contains the start node. */
+    const uint64_t bvhPtrAddr() const {
+      return (uint64_t)&part1;
+    }
+
+    /* returns the world to object space transformation matrix. */
+    const AffineSpace3f World2Obj() const {
+      return AffineSpace3f(part0.world2obj_vx,part0.world2obj_vy,part0.world2obj_vz,part1.world2obj_p);
+    }
+
+    /* returns the object to world space transformation matrix. */
+    const AffineSpace3f Obj2World() const {
+      return AffineSpace3f(part1.obj2world_vx,part1.obj2world_vy,part1.obj2world_vz,part0.obj2world_p);
+    }
+
+    /* output operator for instance leaf */
+    void print (std::ostream& cout, uint32_t depth) const
+    {
+#if !defined(__SYCL_DEVICE_ONLY__)
+      cout << tab(depth) << "InstanceLeaf {" << std::endl;
+      cout << tab(depth) << "  addr = " << this << std::endl;
+      cout << tab(depth) << "  geomMask = " << std::bitset<8>(part0.geomMask) << std::endl;
+      cout << tab(depth) << "  geomIndex = " << part1.instanceIndex << std::endl;
+      cout << tab(depth) << "  instanceID = " << part1.instanceID << std::endl;
+      cout << tab(depth) << "  instFlags = " << InstanceFlags(part0.instFlags) << std::endl;
+      cout << tab(depth) << "  startNodePtr = " << (void*)(size_t)part0.startNodePtr << std::endl;
+      cout << tab(depth) << "  obj2world.vx = " << part1.obj2world_vx << std::endl;
+      cout << tab(depth) << "  obj2world.vy = " << part1.obj2world_vy << std::endl;
+      cout << tab(depth) << "  obj2world.vz = " << part1.obj2world_vz << std::endl;
+      cout << tab(depth) << "  obj2world.p = " << part0.obj2world_p << std::endl;
+      cout << tab(depth) << "  world2obj.vx = " << part0.world2obj_vx << std::endl;
+      cout << tab(depth) << "  world2obj.vy = " << part0.world2obj_vy << std::endl;
+      cout << tab(depth) << "  world2obj.vz = " << part0.world2obj_vz << std::endl;
+      cout << tab(depth) << "  world2obj.p = " << part1.world2obj_p << std::endl;
+      cout << tab(depth) << "  instanceContributionToHitGroupIndex = " << part0.instanceContributionToHitGroupIndex << std::endl;
+      cout << tab(depth) << "}";
+#endif
+    }
+
+    /* output operator for InstanceLeaf */
+    friend inline std::ostream& operator<<(std::ostream& cout, const InstanceLeafV2& leaf) {
+      leaf.print(cout,0); return cout;
+    }
+
+    /* first 64 bytes accessed during traversal by hardware */
+    struct Part0
+    {
+    public:
+      uint32_t instanceContributionToHitGroupIndex : 24;  // Xe3: instance contribution to hit group index
+      uint32_t geomMask : 8;            // Xe1+: geometry mask used for ray masking
+      
+      uint32_t instFlags : 8;           // Xe3: flags for the instance (see InstanceFlags)      
+      uint32_t ComparisonMode  : 1;     // Xe3: 0 for <=, 1 for > comparison
+      uint32_t ComparisonValue : 7;     // Xe3: to be compared with ray.ComparionMask
+      uint32_t pad0 : 8;                // reserved (MBZ)
+      uint32_t subType     : 3;         // Xe3: geometry sub-type
+      uint32_t pad1        : 2;         // reserved (MBZ)
+      uint32_t DisableOpacityCull : 1;  // Xe1+: disables opacity culling
+      uint32_t OpaqueGeometry : 1;      // Xe1+: determines if geometry is opaque
+      uint32_t IgnoreRayMultiplier : 1; // Xe3: ignores ray geometry multiplier
+      
+      uint64_t startNodePtr;            // Xe3: 64 bit start node where of the instanced object
+      
+      Vec3f world2obj_vx;   // 1st column of Worl2Obj transform
+      Vec3f world2obj_vy;   // 2nd column of Worl2Obj transform
+      Vec3f world2obj_vz;   // 3rd column of Worl2Obj transform
+      Vec3f obj2world_p;    // translation of Obj2World transform (on purpose in first 64 bytes)
+    } part0;
+
+    /* second 64 bytes accessed during shading */
+    struct Part1
+    {
+      uint64_t bvhPtr : 48;   // pointer to BVH where start node belongs too
+      uint64_t pad : 16;      // unused bits
+      
+      uint32_t instanceID;    // user defined value per DXR spec
+      uint32_t instanceIndex; // geometry index of the instance (n'th geometry in scene)
+      
+      Vec3f obj2world_vx;   // 1st column of Obj2World transform
+      Vec3f obj2world_vy;   // 2nd column of Obj2World transform
+      Vec3f obj2world_vz;   // 3rd column of Obj2World transform
+      Vec3f world2obj_p;    // translation of World2Obj transform
+    } part1;
+  };
+
+  static_assert(sizeof(InstanceLeafV2) == 128, "InstanceLeafV2 must be 128 bytes large");
+
 
   /*
     Leaf type for procedural geometry. This leaf only contains the

@@ -709,6 +709,8 @@ namespace embree
           else if (ty == INSTANCE) {
             if (rtas_format == ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1)
               return createInstances<InstanceLeaf>(curRecord,curAddr,curBytes);
+            else if (rtas_format == ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_2)
+              return createInstances<InstanceLeafV2>(curRecord,curAddr,curBytes);
           }
           
           assert(false);
