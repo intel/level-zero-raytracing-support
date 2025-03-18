@@ -303,6 +303,21 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
     pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
     return ZE_RESULT_SUCCESS;
   }
+
+  /* BMG */
+  const bool bmg =
+    (device_id == 0xE202) ||
+    (device_id == 0xE20B) ||
+    (device_id == 0xE20C) ||
+    (device_id == 0xE20D) ||
+    (device_id == 0xE210) ||
+    (device_id == 0xE212) ||
+    (device_id == 0xE216);
+  
+  if (bmg) {
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    return ZE_RESULT_SUCCESS;
+  }
   
   /* PVC */
   const bool pvc =
