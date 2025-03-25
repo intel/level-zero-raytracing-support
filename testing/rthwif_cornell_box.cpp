@@ -518,6 +518,18 @@ int main(int argc, char* argv[]) try
   ze_result_t result = ZE_RESULT_SUCCESS;
   sycl::platform platform = device.get_platform();
   ze_driver_handle_t hDriver = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(platform);
+  ze_device_handle_t hDevice = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
+
+  /* check if ray tracing hardware is supported */
+  ze_device_raytracing_ext_properties_t raytracing_properties = { ZE_STRUCTURE_TYPE_DEVICE_RAYTRACING_EXT_PROPERTIES };
+  ze_device_module_properties_t module_properties = { ZE_STRUCTURE_TYPE_DEVICE_MODULE_PROPERTIES, &raytracing_properties };
+  result = ZeWrapper::zeDeviceGetModuleProperties(hDevice, &module_properties);
+  if (result != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("zeDeviceGetModuleProperties failed");
+  
+  const bool rayQuerySupported = raytracing_properties.flags & ZE_DEVICE_RAYTRACING_EXT_FLAG_RAYQUERY;
+  if (!rayQuerySupported)
+    throw std::runtime_error("Device does not support ray tracing");
 
   /* enable RTAS extension only when enabled */
   if (rtas_build_mode == ZeWrapper::RTAS_BUILD_MODE::AUTO)
@@ -560,7 +572,6 @@ int main(int argc, char* argv[]) try
     std::cout << "using Level Zero RTAS builder" << std::endl;
 
   /* get acceleration structure format for this device */
-  ze_device_handle_t  hDevice  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
   ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
   ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
   result = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
