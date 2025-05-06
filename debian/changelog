@@ -1,8 +1,32 @@
-intel-level-zero-gpu-raytracing (1.1.0) UNRELEASED; urgency=medium
+intel-level-zero-gpu-raytracing (1.1.0) oracular; urgency=medium
 
+  [ Sven Woop ]
   * Added support for PTL RTAS layout.
 
- -- Sven Woop <sven.woop@intel.com>  Thu, 06 Mar 2025 08:22:00 +0100
+  [ Shane McKee ]
+  * Change to oracular for Intel Graphics PPA
+  * Blended in changes from Pavel's PR#7 during conflict resolution
+
+ -- Shane McKee <shane.mckee@canonical.com>  Fri, 02 May 2025 20:12:54 +0400
+
+intel-level-zero-gpu-raytracing (1.0.0-0ubuntu1~24.10~ppa5) oracular; urgency=medium
+
+  * Change package name to fit soname
+  * Create noble version
+
+ -- Shane McKee <shane.mckee@canonical.com>  Wed, 29 Jan 2025 11:15:53 +0800
+
+intel-level-zero-gpu-raytracing (1.0.0-0ubuntu1~24.10~ppa4) oracular; urgency=medium
+
+  * Remove pkg compression override and drop 3rd party docs
+
+ -- Pavel Androniychuk <pavel.androniychuk@intel.com>  Wed, 23 Oct 2024 16:51:24 -0700
+
+intel-level-zero-gpu-raytracing (1.0.0-0ubuntu1~24.10~ppa3) oracular; urgency=medium
+
+  * Change dependency to pull libtbb-dev from archive
+
+ -- piandro-mobl2 <pavel.androniychuk@intel.com>  Mon, 30 Sep 2024 08:41:42 -0700
 
 intel-level-zero-gpu-raytracing (1.0.0) UNRELEASED; urgency=medium
 
