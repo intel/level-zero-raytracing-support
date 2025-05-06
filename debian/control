@@ -14,15 +14,16 @@ Build-Depends: debhelper (>= 11),
 Standards-Version: 4.3.0
 Homepage: https://github.com/intel/level-zero-raytracing-support
 
-Package: intel-level-zero-gpu-raytracing
+Package: libze-intel-gpu-raytracing
+Replaces: intel-level-zero-gpu-raytracing
+Conflicts: intel-level-zero-gpu-raytracing
 Architecture: amd64
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
- level-zero (>=1.17.44) | libze1 (>=1.17.44)
-Description: oneAPI Level Zero Ray Tracing Support
- .
- The oneAPI Level Zero Ray Tracing Support library implements high performance CPU
+ libze1 (>=1.21.1)
+Description: Level Zero Ray Tracing Support library
+ The Level Zero Ray Tracing Support library implements high performance CPU
  based construction algorithms for 3D acceleration structures that are
  compatible with the ray tracing hardware of Intel GPUs.
  This library is used by Intel(R) oneAPI Level Zero to implement part of the
