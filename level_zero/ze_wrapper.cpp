@@ -34,7 +34,9 @@ static decltype(zeMemAllocShared)* zeMemAllocSharedInternal = nullptr;
 static decltype(zeDriverGetExtensionProperties)* zeDriverGetExtensionPropertiesInternal = nullptr;
 static decltype(zeDeviceGetProperties)* zeDeviceGetPropertiesInternal = nullptr;
 static decltype(zeDeviceGetModuleProperties)* zeDeviceGetModulePropertiesInternal = nullptr;
+static decltype(zeCommandListAppendMemoryCopy)* zeCommandListAppendMemoryCopyInternal = nullptr;
 
+/* EXP version of API */
 static decltype(zeRTASBuilderCreateExp)* zeRTASBuilderCreateExpInternal = nullptr;
 static decltype(zeRTASBuilderDestroyExp)* zeRTASBuilderDestroyExpInternal = nullptr;
 static decltype(zeDriverRTASFormatCompatibilityCheckExp)* zeDriverRTASFormatCompatibilityCheckExpInternal = nullptr;
@@ -45,6 +47,19 @@ static decltype(zeRTASParallelOperationCreateExp)* zeRTASParallelOperationCreate
 static decltype(zeRTASParallelOperationDestroyExp)* zeRTASParallelOperationDestroyExpInternal = nullptr; 
 static decltype(zeRTASParallelOperationGetPropertiesExp)* zeRTASParallelOperationGetPropertiesExpInternal = nullptr;
 static decltype(zeRTASParallelOperationJoinExp)* zeRTASParallelOperationJoinExpInternal = nullptr;
+
+/* EXT version of API */
+static decltype(zeRTASBuilderCreateExt)* zeRTASBuilderCreateExtInternal = nullptr;
+static decltype(zeRTASBuilderDestroyExt)* zeRTASBuilderDestroyExtInternal = nullptr;
+static decltype(zeDriverRTASFormatCompatibilityCheckExt)* zeDriverRTASFormatCompatibilityCheckExtInternal = nullptr;
+static decltype(zeRTASBuilderGetBuildPropertiesExt)* zeRTASBuilderGetBuildPropertiesExtInternal = nullptr;
+static decltype(zeRTASBuilderBuildExt)* zeRTASBuilderBuildExtInternal = nullptr;
+static decltype(zeRTASBuilderCommandListAppendCopyExt)* zeRTASBuilderCommandListAppendCopyExtInternal = nullptr;
+  
+static decltype(zeRTASParallelOperationCreateExt)* zeRTASParallelOperationCreateExtInternal = nullptr;
+static decltype(zeRTASParallelOperationDestroyExt)* zeRTASParallelOperationDestroyExtInternal = nullptr; 
+static decltype(zeRTASParallelOperationGetPropertiesExt)* zeRTASParallelOperationGetPropertiesExtInternal = nullptr;
+static decltype(zeRTASParallelOperationJoinExt)* zeRTASParallelOperationJoinExtInternal = nullptr;
 
 template<typename T>
 T find_symbol(void* handle, std::string const& symbol) {
@@ -88,11 +103,11 @@ ZeWrapper::~ZeWrapper() {
   unload_module(handle);
 }
 
-ze_result_t selectLevelZeroRTASBuilder(ze_driver_handle_t hDriver)
+ze_result_t selectLevelZeroRTASBuilderExp(ze_driver_handle_t hDriver)
 {
   if (ZeWrapper::rtas_builder == ZeWrapper::LEVEL_ZERO)
     return ZE_RESULT_SUCCESS;
-  
+
   auto zeRTASBuilderCreateExpTemp = find_symbol<decltype(zeRTASBuilderCreateExp)*>(handle,"zeRTASBuilderCreateExp");
   auto zeRTASBuilderDestroyExpTemp = find_symbol<decltype(zeRTASBuilderDestroyExp)*>(handle,"zeRTASBuilderDestroyExp");
   
@@ -118,9 +133,54 @@ ze_result_t selectLevelZeroRTASBuilder(ze_driver_handle_t hDriver)
   zeRTASParallelOperationDestroyExpInternal = find_symbol<decltype(zeRTASParallelOperationDestroyExp)*>(handle,"zeRTASParallelOperationDestroyExp");
   zeRTASParallelOperationGetPropertiesExpInternal = find_symbol<decltype(zeRTASParallelOperationGetPropertiesExp)*>(handle,"zeRTASParallelOperationGetPropertiesExp");
   zeRTASParallelOperationJoinExpInternal = find_symbol<decltype(zeRTASParallelOperationJoinExp)*>(handle,"zeRTASParallelOperationJoinExp");
-  
+
   ZeWrapper::rtas_builder = ZeWrapper::LEVEL_ZERO;
   return ZE_RESULT_SUCCESS;
+}
+
+ze_result_t selectLevelZeroRTASBuilderExt(ze_driver_handle_t hDriver)
+{
+  if (ZeWrapper::rtas_builder == ZeWrapper::LEVEL_ZERO)
+    return ZE_RESULT_SUCCESS;
+
+  auto zeRTASBuilderCreateExtTemp = find_symbol<decltype(zeRTASBuilderCreateExt)*>(handle,"zeRTASBuilderCreateExt");
+  auto zeRTASBuilderDestroyExtTemp = find_symbol<decltype(zeRTASBuilderDestroyExt)*>(handle,"zeRTASBuilderDestroyExt");
+  
+  ze_rtas_builder_ext_desc_t builderDesc = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXT_DESC };
+  ze_rtas_builder_ext_handle_t hBuilder = nullptr;
+  ze_result_t err = zeRTASBuilderCreateExtTemp(hDriver, &builderDesc, &hBuilder);
+
+  /* when ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE is reported extension cannot get loaded */
+  if (err == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
+    return err;
+
+  if (err == ZE_RESULT_SUCCESS)
+    zeRTASBuilderDestroyExtTemp(hBuilder);
+
+  zeRTASBuilderCreateExtInternal = zeRTASBuilderCreateExtTemp;
+  zeRTASBuilderDestroyExtInternal = zeRTASBuilderDestroyExtTemp;
+  
+  zeDriverRTASFormatCompatibilityCheckExtInternal = find_symbol<decltype(zeDriverRTASFormatCompatibilityCheckExt)*>(handle,"zeDriverRTASFormatCompatibilityCheckExt");
+  zeRTASBuilderGetBuildPropertiesExtInternal = find_symbol<decltype(zeRTASBuilderGetBuildPropertiesExt)*>(handle,"zeRTASBuilderGetBuildPropertiesExt");
+  zeRTASBuilderBuildExtInternal = find_symbol<decltype(zeRTASBuilderBuildExt)*>(handle,"zeRTASBuilderBuildExt");
+  zeRTASBuilderCommandListAppendCopyExtInternal = find_symbol<decltype(zeRTASBuilderCommandListAppendCopyExt)*>(handle,"zeRTASBuilderCommandListAppendCopyExt");
+  
+  zeRTASParallelOperationCreateExtInternal = find_symbol<decltype(zeRTASParallelOperationCreateExt)*>(handle,"zeRTASParallelOperationCreateExt");
+  zeRTASParallelOperationDestroyExtInternal = find_symbol<decltype(zeRTASParallelOperationDestroyExt)*>(handle,"zeRTASParallelOperationDestroyExt");
+  zeRTASParallelOperationGetPropertiesExtInternal = find_symbol<decltype(zeRTASParallelOperationGetPropertiesExt)*>(handle,"zeRTASParallelOperationGetPropertiesExt");
+  zeRTASParallelOperationJoinExtInternal = find_symbol<decltype(zeRTASParallelOperationJoinExt)*>(handle,"zeRTASParallelOperationJoinExt");
+
+  ZeWrapper::rtas_builder = ZeWrapper::LEVEL_ZERO;
+  return ZE_RESULT_SUCCESS;
+}
+
+ze_result_t selectLevelZeroRTASBuilder(API_TY aty, ze_driver_handle_t hDriver)
+{
+  switch (aty) {
+  case EXP_API: return selectLevelZeroRTASBuilderExp(hDriver);
+  case EXT_API: return selectLevelZeroRTASBuilderExt(hDriver);
+  default: assert(false); return ZE_RESULT_ERROR_UNKNOWN;
+  }
 }
 
 ze_result_t selectInternalRTASBuilder()
@@ -141,7 +201,18 @@ ze_result_t selectInternalRTASBuilder()
   zeRTASParallelOperationDestroyExpInternal = &zeRTASParallelOperationDestroyExpImpl;
   zeRTASParallelOperationGetPropertiesExpInternal = &zeRTASParallelOperationGetPropertiesExpImpl;
   zeRTASParallelOperationJoinExpInternal = &zeRTASParallelOperationJoinExpImpl;
+
+  zeRTASBuilderCreateExtInternal = &zeRTASBuilderCreateExtImpl;
+  zeRTASBuilderDestroyExtInternal = &zeRTASBuilderDestroyExtImpl;
+  zeDriverRTASFormatCompatibilityCheckExtInternal = &zeDriverRTASFormatCompatibilityCheckExtImpl;
+  zeRTASBuilderGetBuildPropertiesExtInternal = &zeRTASBuilderGetBuildPropertiesExtImpl;
+  zeRTASBuilderBuildExtInternal = &zeRTASBuilderBuildExtImpl;
   
+  zeRTASParallelOperationCreateExtInternal = &zeRTASParallelOperationCreateExtImpl;
+  zeRTASParallelOperationDestroyExtInternal = &zeRTASParallelOperationDestroyExtImpl;
+  zeRTASParallelOperationGetPropertiesExtInternal = &zeRTASParallelOperationGetPropertiesExtImpl;
+  zeRTASParallelOperationJoinExtInternal = &zeRTASParallelOperationJoinExtImpl;
+
   ZeWrapper::rtas_builder = ZeWrapper::INTERNAL;
 #endif
   return ZE_RESULT_SUCCESS;
@@ -161,6 +232,7 @@ ze_result_t ZeWrapper::init()
     zeDriverGetExtensionPropertiesInternal = find_symbol<decltype(zeDriverGetExtensionProperties)*>(handle, "zeDriverGetExtensionProperties");
     zeDeviceGetPropertiesInternal = find_symbol<decltype(zeDeviceGetProperties)*>(handle, "zeDeviceGetProperties");
     zeDeviceGetModulePropertiesInternal = find_symbol<decltype(zeDeviceGetModuleProperties)*>(handle, "zeDeviceGetModuleProperties");
+    zeCommandListAppendMemoryCopyInternal = find_symbol<decltype(zeCommandListAppendMemoryCopy)*>(handle, "zeCommandListAppendMemoryCopy");
   }
   catch (std::exception& e) {
     return ZE_RESULT_ERROR_UNKNOWN;
@@ -168,7 +240,7 @@ ze_result_t ZeWrapper::init()
   return ZE_RESULT_SUCCESS;
 }
 
-ze_result_t ZeWrapper::initRTASBuilder(ze_driver_handle_t hDriver, RTAS_BUILD_MODE rtas_build_mode)
+ze_result_t ZeWrapper::initRTASBuilder(API_TY aty, ze_driver_handle_t hDriver, RTAS_BUILD_MODE rtas_build_mode)
 {
   std::lock_guard<std::mutex> lock(zeWrapperMutex);
 
@@ -182,7 +254,7 @@ ze_result_t ZeWrapper::initRTASBuilder(ze_driver_handle_t hDriver, RTAS_BUILD_MO
       return selectInternalRTASBuilder();
     
     else if (rtas_build_mode == RTAS_BUILD_MODE::LEVEL_ZERO)
-      return selectLevelZeroRTASBuilder(hDriver);
+      return selectLevelZeroRTASBuilder(aty,hDriver);
     
     else
       throw std::runtime_error("internal error");
@@ -236,8 +308,8 @@ ze_result_t validate(ze_rtas_device_exp_properties_t* pProperties)
   if (pProperties == nullptr)
     return ZE_RESULT_ERROR_INVALID_NULL_POINTER;
   
-  if (pProperties->stype != ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES)
-    return ZE_RESULT_ERROR_INVALID_ENUMERATION;
+  //if (pProperties->stype != ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES)
+  //  return ZE_RESULT_ERROR_INVALID_ENUMERATION;
   
   //if (!checkDescChain((zet_base_desc_t_*)pProperties))
   //return ZE_RESULT_ERROR_INVALID_ENUMERATION;
@@ -363,7 +435,8 @@ ze_result_t ZeWrapper::zeDeviceGetProperties(ze_device_handle_t ze_handle, ze_de
 
   if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
   {
-    if (props->pNext && ((ze_base_properties_t*)props->pNext)->stype == ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES)
+    if (props->pNext && (((ze_base_properties_t*)props->pNext)->stype == ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES ||
+                         ((ze_base_properties_t*)props->pNext)->stype == ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES))
     {
       ze_result_t result = zeDeviceGetRTASPropertiesExp(ze_handle, (ze_rtas_device_exp_properties_t*)props->pNext);
       if (result != ZE_RESULT_SUCCESS) return result;
@@ -386,6 +459,8 @@ ze_result_t ZeWrapper::zeDeviceGetModuleProperties(ze_device_handle_t ze_handle,
   
   return zeDeviceGetModulePropertiesInternal(ze_handle, props);
 }
+
+/* EXP version of API */
 
 ze_result_t ZeWrapper::zeRTASBuilderCreateExp(ze_driver_handle_t hDriver, const ze_rtas_builder_exp_desc_t *pDescriptor, ze_rtas_builder_exp_handle_t *phBuilder)
 {
@@ -437,6 +512,20 @@ ze_result_t ZeWrapper::zeRTASBuilderBuildExp(ze_rtas_builder_exp_handle_t hBuild
                                        hParallelOperation, pBuildUserPtr, pBounds, pRtasBufferSizeBytes);
 }
 
+ze_result_t ZeWrapper::zeRTASBuilderCommandListAppendCopyExp(ze_command_list_handle_t hCommandList,
+                                                             void* dstptr,
+                                                             const void* srcptr,
+                                                             size_t size,
+                                                             ze_event_handle_t hSignalEvent,
+                                                             uint32_t numWaitEvents,
+                                                             ze_event_handle_t* phWaitEvents)
+{
+  if (!handle || !zeCommandListAppendMemoryCopyInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+  
+  return zeCommandListAppendMemoryCopyInternal(hCommandList,dstptr,srcptr,size,hSignalEvent,numWaitEvents,phWaitEvents); // EXP API does not have proper copy function
+}
+
 ze_result_t ZeWrapper::zeRTASParallelOperationCreateExp(ze_driver_handle_t hDriver, ze_rtas_parallel_operation_exp_handle_t* phParallelOperation)
 {
   if (!handle || !zeRTASParallelOperationCreateExpInternal)
@@ -467,4 +556,103 @@ ze_result_t ZeWrapper::zeRTASParallelOperationJoinExp( ze_rtas_parallel_operatio
     throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
   
   return zeRTASParallelOperationJoinExpInternal(hParallelOperation);
+}
+
+
+/* EXT version of API */
+
+ze_result_t ZeWrapper::zeRTASBuilderCreateExt(ze_driver_handle_t hDriver, const ze_rtas_builder_ext_desc_t *pDescriptor, ze_rtas_builder_ext_handle_t *phBuilder)
+{
+  if (!handle || !zeRTASBuilderCreateExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+  
+  return zeRTASBuilderCreateExtInternal(hDriver,pDescriptor,phBuilder);
+}
+
+ze_result_t ZeWrapper::zeRTASBuilderDestroyExt(ze_rtas_builder_ext_handle_t hBuilder)
+{
+  if (!handle || !zeRTASBuilderDestroyExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+    
+  return zeRTASBuilderDestroyExtInternal(hBuilder);
+}
+
+ze_result_t ZeWrapper::zeDriverRTASFormatCompatibilityCheckExt( ze_driver_handle_t hDriver,
+                                                                 const ze_rtas_format_ext_t accelFormat,
+                                                                 const ze_rtas_format_ext_t otherAccelFormat)
+{
+  if (!handle || !zeDriverRTASFormatCompatibilityCheckExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+  
+  return zeDriverRTASFormatCompatibilityCheckExtInternal( hDriver, accelFormat, otherAccelFormat);
+}
+
+ze_result_t ZeWrapper::zeRTASBuilderGetBuildPropertiesExt(ze_rtas_builder_ext_handle_t hBuilder,
+                                                          const ze_rtas_builder_build_op_ext_desc_t* args,
+                                                          ze_rtas_builder_ext_properties_t* pProp)
+{
+  if (!handle || !zeRTASBuilderGetBuildPropertiesExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+    
+  return zeRTASBuilderGetBuildPropertiesExtInternal(hBuilder, args, pProp);
+}
+  
+ze_result_t ZeWrapper::zeRTASBuilderBuildExt(ze_rtas_builder_ext_handle_t hBuilder,
+                                             const ze_rtas_builder_build_op_ext_desc_t* args,
+                                             void *pScratchBuffer, size_t scratchBufferSizeBytes,
+                                             void *pRtasBuffer, size_t rtasBufferSizeBytes,
+                                             ze_rtas_parallel_operation_ext_handle_t hParallelOperation,
+                                             void *pBuildUserPtr, ze_rtas_aabb_ext_t *pBounds, size_t *pRtasBufferSizeBytes)
+{
+  if (!handle || !zeRTASBuilderBuildExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+  
+  return zeRTASBuilderBuildExtInternal(hBuilder, args, pScratchBuffer, scratchBufferSizeBytes, pRtasBuffer, rtasBufferSizeBytes,
+                                       hParallelOperation, pBuildUserPtr, pBounds, pRtasBufferSizeBytes);
+}
+
+ze_result_t ZeWrapper::zeRTASBuilderCommandListAppendCopyExt(ze_command_list_handle_t hCommandList,
+                                                             void* dstptr,
+                                                             const void* srcptr,
+                                                             size_t size,
+                                                             ze_event_handle_t hSignalEvent,
+                                                             uint32_t numWaitEvents,
+                                                             ze_event_handle_t* phWaitEvents)
+{
+  if (!handle || !zeRTASBuilderCommandListAppendCopyExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+
+  return zeRTASBuilderCommandListAppendCopyExtInternal(hCommandList,dstptr,srcptr,size,hSignalEvent,numWaitEvents,phWaitEvents);
+}
+
+ze_result_t ZeWrapper::zeRTASParallelOperationCreateExt(ze_driver_handle_t hDriver, ze_rtas_parallel_operation_ext_handle_t* phParallelOperation)
+{
+  if (!handle || !zeRTASParallelOperationCreateExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+
+  return zeRTASParallelOperationCreateExtInternal(hDriver, phParallelOperation);
+}
+
+ze_result_t ZeWrapper::zeRTASParallelOperationDestroyExt( ze_rtas_parallel_operation_ext_handle_t hParallelOperation )
+{
+  if (!handle || !zeRTASParallelOperationDestroyExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+  
+  return zeRTASParallelOperationDestroyExtInternal( hParallelOperation );
+};
+
+ze_result_t ZeWrapper::zeRTASParallelOperationGetPropertiesExt( ze_rtas_parallel_operation_ext_handle_t hParallelOperation, ze_rtas_parallel_operation_ext_properties_t* pProperties )
+{
+  if (!handle || !zeRTASParallelOperationGetPropertiesExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+  
+  return zeRTASParallelOperationGetPropertiesExtInternal( hParallelOperation, pProperties );
+}
+ 
+ze_result_t ZeWrapper::zeRTASParallelOperationJoinExt( ze_rtas_parallel_operation_ext_handle_t hParallelOperation)
+{
+  if (!handle || !zeRTASParallelOperationJoinExtInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+  
+  return zeRTASParallelOperationJoinExtInternal(hParallelOperation);
 }

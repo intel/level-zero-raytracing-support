@@ -34,6 +34,36 @@ typedef enum _ze_raytracing_accel_format_internal_t {
   ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_MAX = 2
 } ze_raytracing_accel_format_internal_t;
 
+
+/* EXT version of API */
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderCreateExtImpl(ze_driver_handle_t hDriver, const ze_rtas_builder_ext_desc_t *pDescriptor, ze_rtas_builder_ext_handle_t *phBuilder);
+
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderDestroyExtImpl(ze_rtas_builder_ext_handle_t hBuilder);
+
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeDriverRTASFormatCompatibilityCheckExtImpl( ze_driver_handle_t hDriver,
+                                                                                       const ze_rtas_format_ext_t accelFormat,
+                                                                                       const ze_rtas_format_ext_t otherAccelFormat);
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderGetBuildPropertiesExtImpl(ze_rtas_builder_ext_handle_t hBuilder,
+                                                                                const ze_rtas_builder_build_op_ext_desc_t* args,
+                                                                                ze_rtas_builder_ext_properties_t* pProp);
+  
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderBuildExtImpl(ze_rtas_builder_ext_handle_t hBuilder,
+                                                                   const ze_rtas_builder_build_op_ext_desc_t* args,
+                                                                   void *pScratchBuffer, size_t scratchBufferSizeBytes,
+                                                                   void *pRtasBuffer, size_t rtasBufferSizeBytes,
+                                                                   ze_rtas_parallel_operation_ext_handle_t hParallelOperation,
+                                                                   void *pBuildUserPtr, ze_rtas_aabb_ext_t *pBounds, size_t *pRtasBufferSizeBytes);
+
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationCreateExtImpl(ze_driver_handle_t hDriver, ze_rtas_parallel_operation_ext_handle_t* phParallelOperation);
+
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationDestroyExtImpl( ze_rtas_parallel_operation_ext_handle_t hParallelOperation );
+
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationGetPropertiesExtImpl( ze_rtas_parallel_operation_ext_handle_t hParallelOperation, ze_rtas_parallel_operation_ext_properties_t* pProperties );
+
+RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationJoinExtImpl( ze_rtas_parallel_operation_ext_handle_t hParallelOperation);
+
+
+/* EXP version of API */
 RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderCreateExpImpl(ze_driver_handle_t hDriver, const ze_rtas_builder_exp_desc_t *pDescriptor, ze_rtas_builder_exp_handle_t *phBuilder);
 
 RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderDestroyExpImpl(ze_rtas_builder_exp_handle_t hBuilder);
@@ -59,4 +89,3 @@ RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationDestroyExpImpl( 
 RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationGetPropertiesExpImpl( ze_rtas_parallel_operation_exp_handle_t hParallelOperation, ze_rtas_parallel_operation_exp_properties_t* pProperties );
 
 RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationJoinExpImpl( ze_rtas_parallel_operation_exp_handle_t hParallelOperation);
-

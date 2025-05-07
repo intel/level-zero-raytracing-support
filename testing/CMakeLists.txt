@@ -21,14 +21,21 @@ ENDIF()
 
 INSTALL(FILES "${ABN_TEST_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test)
 
-# creation of windows batch test file
-SET(BAT_TEST_FILE "${CMAKE_BINARY_DIR}/run.bat")
-FILE(WRITE "${BAT_TEST_FILE}" "@echo off\n")
-FILE(APPEND "${BAT_TEST_FILE}" "set errors=0\n")
-FILE(APPEND "${BAT_TEST_FILE}" "cd bin\n")
-FILE(APPEND "${BAT_TEST_FILE}" "\n")
+SET(BAT_TEST_FILE_EXP "${CMAKE_BINARY_DIR}/run.bat")
+SET(SHELL_TEST_FILE_EXP "${CMAKE_BINARY_DIR}/run.sh")
 
-FUNCTION(ADD_BAT_TEST)
+SET(BAT_TEST_FILE_EXT "${CMAKE_BINARY_DIR}/run_ext.bat")
+SET(SHELL_TEST_FILE_EXT "${CMAKE_BINARY_DIR}/run_ext.sh")
+
+# creation of windows batch test file
+FUNCTION(INIT_BAT_TEST BAT_TEST_FILE)
+  FILE(WRITE "${BAT_TEST_FILE}" "@echo off\n")
+  FILE(APPEND "${BAT_TEST_FILE}" "set errors=0\n")
+  FILE(APPEND "${BAT_TEST_FILE}" "cd bin\n")
+  FILE(APPEND "${BAT_TEST_FILE}" "\n")
+ENDFUNCTION()
+
+FUNCTION(ADD_BAT_TEST BAT_TEST_FILE)
   CMAKE_PARSE_ARGUMENTS(BAT_TEST "" "NAME" "COMMAND" ${ARGN})
   LIST(POP_FRONT BAT_TEST_COMMAND CMD)
   LIST(PREPEND BAT_TEST_COMMAND "${CMD}.exe")
@@ -43,26 +50,25 @@ FUNCTION(ADD_BAT_TEST)
   FILE(APPEND "${BAT_TEST_FILE}" "\n")
 ENDFUNCTION()
 
-FUNCTION(FINALIZE_BAT_TEST)
+FUNCTION(FINALIZE_BAT_TEST BAT_TEST_FILE)
   FILE(APPEND "${BAT_TEST_FILE}" "cd ..\n")
   FILE(APPEND "${BAT_TEST_FILE}" "echo %errors% tests failed\n")
   FILE(APPEND "${BAT_TEST_FILE}" "if %errors% neq 0 exit /b 1\n")
 ENDFUNCTION()
 
 # creation of Linux batch test file
-SET(SHELL_TEST_FILE "${CMAKE_BINARY_DIR}/run.sh")
-FILE(WRITE "${SHELL_TEST_FILE}" "#!/bin/bash\n")
-FILE(APPEND "${SHELL_TEST_FILE}" "errors=0\n")
-FILE(APPEND "${SHELL_TEST_FILE}" "cd bin\n")
+FUNCTION(INIT_SHELL_TEST SHELL_TEST_FILE)
+  FILE(WRITE "${SHELL_TEST_FILE}" "#!/bin/bash\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "errors=0\n")
+  FILE(APPEND "${SHELL_TEST_FILE}" "cd bin\n")
+  GET_FILENAME_COMPONENT(DPCPP_COMPILER_NAME ${CMAKE_CXX_COMPILER} NAME_WE)
+  IF (DPCPP_COMPILER_NAME STREQUAL "icpx")
+    FILE(APPEND "${SHELL_TEST_FILE}" "export LD_LIBRARY_PATH=\$\{LD_LIBRARY_PATH\}:.\n")  # required as workaround for ICX
+  ENDIF()
+  FILE(APPEND "${SHELL_TEST_FILE}" "\n")
+ENDFUNCTION()
 
-GET_FILENAME_COMPONENT(DPCPP_COMPILER_NAME ${CMAKE_CXX_COMPILER} NAME_WE)
-IF (DPCPP_COMPILER_NAME STREQUAL "icpx")
-  FILE(APPEND "${SHELL_TEST_FILE}" "export LD_LIBRARY_PATH=\$\{LD_LIBRARY_PATH\}:.\n")  # required as workaround for ICX
-ENDIF()
-
-FILE(APPEND "${SHELL_TEST_FILE}" "\n")
-
-FUNCTION(ADD_SHELL_TEST)
+FUNCTION(ADD_SHELL_TEST SHELL_TEST_FILE)
   CMAKE_PARSE_ARGUMENTS(SHELL_TEST "" "NAME" "COMMAND" ${ARGN})
   LIST(POP_FRONT SHELL_TEST_COMMAND CMD)
   LIST(PREPEND SHELL_TEST_COMMAND "./${CMD}")
@@ -78,7 +84,7 @@ FUNCTION(ADD_SHELL_TEST)
   FILE(APPEND "${SHELL_TEST_FILE}" "\n")
 ENDFUNCTION()
 
-FUNCTION(FINALIZE_SHELL_TEST)
+FUNCTION(FINALIZE_SHELL_TEST SHELL_TEST_FILE)
   FILE(APPEND "${SHELL_TEST_FILE}" "cd ..\n")
   FILE(APPEND "${SHELL_TEST_FILE}" "echo $errors tests failed\n")
   FILE(APPEND "${SHELL_TEST_FILE}" "if (($errors != 0)); then exit 1; fi\n")
@@ -86,9 +92,12 @@ ENDFUNCTION()
 
 # install windows batch test file or linux shell script
 IF (WIN32)
-  INSTALL(FILES "${BAT_TEST_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test)
+  INSTALL(FILES "${BAT_TEST_FILE_EXP}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test)
+  INSTALL(FILES "${BAT_TEST_FILE_EXT}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test)
 ELSE()
-  INSTALL(FILES "${SHELL_TEST_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test
+  INSTALL(FILES "${SHELL_TEST_FILE_EXP}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test
+          PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+  INSTALL(FILES "${SHELL_TEST_FILE_EXT}" DESTINATION "${CMAKE_INSTALL_BINDIR}/.." COMPONENT test
           PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 ENDIF()
 
@@ -111,8 +120,14 @@ ENDFUNCTION()
 
 FUNCTION(MY_ADD_TEST)
   ADD_CTEST_TEST(${ARGN})
-  ADD_BAT_TEST(${ARGN})
-  ADD_SHELL_TEST(${ARGN})
+  ADD_BAT_TEST(${BAT_TEST_FILE_EXP} ${ARGN})
+  ADD_SHELL_TEST(${SHELL_TEST_FILE_EXP} ${ARGN})
+ENDFUNCTION()
+
+FUNCTION(MY_ADD_TEST_EXT)
+#  ADD_CTEST_TEST(${ARGN})
+  ADD_BAT_TEST(${BAT_TEST_FILE_EXT} ${ARGN})
+  ADD_SHELL_TEST(${SHELL_TEST_FILE_EXT} ${ARGN})
 ENDFUNCTION()
 
 GET_FILENAME_COMPONENT(SYCL_COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
@@ -136,6 +151,19 @@ SET_PROPERTY(TARGET embree_rthwif_test APPEND PROPERTY COMPILE_FLAGS "-fsycl -fs
 SET_PROPERTY(TARGET embree_rthwif_test APPEND PROPERTY LINK_FLAGS "-fsycl -fsycl-targets=spir64 -Xsycl-target-backend=spir64 \" -cl-intel-greater-than-4GB-buffer-required \"")
 TARGET_COMPILE_DEFINITIONS(embree_rthwif_test PUBLIC EMBREE_LEVEL_ZERO ZE_RAYTRACING)
 
+ADD_EXECUTABLE(embree_rthwif_cornell_box_ext rthwif_cornell_box_ext.cpp)
+TARGET_LINK_LIBRARIES(embree_rthwif_cornell_box_ext sys simd tbb ze_wrapper ${RT_SIM_LIBRARY} ${EMBREE_RTHWIF_SYCL})
+SET_PROPERTY(TARGET embree_rthwif_cornell_box_ext APPEND PROPERTY COMPILE_FLAGS "-fsycl -fsycl-targets=spir64")
+SET_PROPERTY(TARGET embree_rthwif_cornell_box_ext APPEND PROPERTY LINK_FLAGS "-fsycl -fsycl-targets=spir64 -Xsycl-target-backend=spir64 \" -cl-intel-greater-than-4GB-buffer-required \"")
+TARGET_COMPILE_DEFINITIONS(embree_rthwif_cornell_box_ext PUBLIC EMBREE_LEVEL_ZERO ZE_RAYTRACING)
+#ADD_CUSTOM_COMMAND(TARGET embree_rthwif_cornell_box_ext POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/cornell_box_reference.tga" "$<TARGET_FILE_DIR:embree_rthwif_cornell_box_ext>")
+
+ADD_EXECUTABLE(embree_rthwif_test_ext rthwif_test_ext.cpp)
+TARGET_LINK_LIBRARIES(embree_rthwif_test_ext sys simd tbb ze_wrapper ${RT_SIM_LIBRARY}  ${EMBREE_RTHWIF_SYCL})
+SET_PROPERTY(TARGET embree_rthwif_test_ext APPEND PROPERTY COMPILE_FLAGS "-fsycl -fsycl-targets=spir64")
+SET_PROPERTY(TARGET embree_rthwif_test_ext APPEND PROPERTY LINK_FLAGS "-fsycl -fsycl-targets=spir64 -Xsycl-target-backend=spir64 \" -cl-intel-greater-than-4GB-buffer-required \"")
+TARGET_COMPILE_DEFINITIONS(embree_rthwif_test_ext PUBLIC EMBREE_LEVEL_ZERO ZE_RAYTRACING)
+
 IF (ZE_RAYTRACING_SYCL_TESTS STREQUAL "INTERNAL_RTAS_BUILDER")
   SET(RTAS_BUILDER_MODE "--internal-rtas-builder")
 ELSEIF (ZE_RAYTRACING_SYCL_TESTS STREQUAL "LEVEL_ZERO_RTAS_BUILDER")
@@ -143,6 +171,10 @@ ELSEIF (ZE_RAYTRACING_SYCL_TESTS STREQUAL "LEVEL_ZERO_RTAS_BUILDER")
 ELSE()
   MESSAGE(FATAL_ERROR "invalid test mode")
 ENDIF()
+
+# EXP API version tests
+INIT_BAT_TEST(${BAT_TEST_FILE_EXP})
+INIT_SHELL_TEST(${SHELL_TEST_FILE_EXP})
 
 MY_ADD_TEST(NAME rthwif_cornell_box COMMAND embree_rthwif_cornell_box ${RTAS_BUILDER_MODE} --compare cornell_box_reference.tga)
 
@@ -177,13 +209,55 @@ MY_ADD_TEST(NAME rthwif_test_swinstancing_triangles_anyhit_shader_commit COMMAND
 MY_ADD_TEST(NAME rthwif_test_swinstancing_triangles_anyhit_shader_reject COMMAND embree_rthwif_test ${RTAS_BUILDER_MODE} --sw-instancing --triangles-anyhit-shader-reject)
 MY_ADD_TEST(NAME rthwif_test_swinstancing_procedurals_committed_hit      COMMAND embree_rthwif_test ${RTAS_BUILDER_MODE} --sw-instancing --procedurals-committed-hit)
 
-FINALIZE_BAT_TEST()
-FINALIZE_SHELL_TEST()
+FINALIZE_BAT_TEST(${BAT_TEST_FILE_EXP})
+FINALIZE_SHELL_TEST(${SHELL_TEST_FILE_EXP})
+
+# EXT API version tests
+INIT_BAT_TEST(${BAT_TEST_FILE_EXT})
+INIT_SHELL_TEST(${SHELL_TEST_FILE_EXT})
+
+MY_ADD_TEST_EXT(NAME rthwif_cornell_box_ext COMMAND embree_rthwif_cornell_box_ext ${RTAS_BUILDER_MODE} --compare cornell_box_reference.tga)
+
+MY_ADD_TEST_EXT(NAME rthwif_test_builder_triangles_expected_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_triangles   --build_mode_expected)
+MY_ADD_TEST_EXT(NAME rthwif_test_builder_procedurals_expected_ext    COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_procedurals --build_mode_expected)
+MY_ADD_TEST_EXT(NAME rthwif_test_builder_instances_expected_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_instances   --build_mode_expected)
+MY_ADD_TEST_EXT(NAME rthwif_test_builder_mixed_expected_ext          COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_mixed       --build_mode_expected)
+
+MY_ADD_TEST_EXT(NAME rthwif_test_benchmark_triangles_ext             COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --benchmark_triangles)
+MY_ADD_TEST_EXT(NAME rthwif_test_benchmark_procedurals_ext           COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --benchmark_procedurals)
+
+MY_ADD_TEST_EXT(NAME rthwif_test_builder_triangles_worst_case_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_triangles   --build_mode_worst_case)
+MY_ADD_TEST_EXT(NAME rthwif_test_builder_procedurals_worst_case_ext    COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_procedurals --build_mode_worst_case)
+MY_ADD_TEST_EXT(NAME rthwif_test_builder_instances_worst_case_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_instances   --build_mode_worst_case)
+MY_ADD_TEST_EXT(NAME rthwif_test_builder_mixed_worst_case_ext          COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_mixed       --build_mode_worst_case)
+
+MY_ADD_TEST_EXT(NAME rthwif_test_triangles_committed_hit_ext        COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --no-instancing --triangles-committed-hit)
+MY_ADD_TEST_EXT(NAME rthwif_test_triangles_potential_hit_ext        COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --no-instancing --triangles-potential-hit)
+MY_ADD_TEST_EXT(NAME rthwif_test_triangles_anyhit_shader_commit_ext COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --no-instancing --triangles-anyhit-shader-commit)
+MY_ADD_TEST_EXT(NAME rthwif_test_triangles_anyhit_shader_reject_ext COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --no-instancing --triangles-anyhit-shader-reject)
+MY_ADD_TEST_EXT(NAME rthwif_test_procedurals_committed_hit_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --no-instancing --procedurals-committed-hit)
+
+MY_ADD_TEST_EXT(NAME rthwif_test_hwinstancing_triangles_committed_hit_ext        COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --hw-instancing --triangles-committed-hit)
+MY_ADD_TEST_EXT(NAME rthwif_test_hwinstancing_triangles_potential_hit_ext        COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --hw-instancing --triangles-potential-hit)
+MY_ADD_TEST_EXT(NAME rthwif_test_hwinstancing_triangles_anyhit_shader_commit_ext COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --hw-instancing --triangles-anyhit-shader-commit)
+MY_ADD_TEST_EXT(NAME rthwif_test_hwinstancing_triangles_anyhit_shader_reject_ext COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --hw-instancing --triangles-anyhit-shader-reject)
+MY_ADD_TEST_EXT(NAME rthwif_test_hwinstancing_procedurals_committed_hit_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --hw-instancing --procedurals-committed-hit)
+
+MY_ADD_TEST_EXT(NAME rthwif_test_swinstancing_triangles_committed_hit_ext        COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --sw-instancing --triangles-committed-hit)
+MY_ADD_TEST_EXT(NAME rthwif_test_swinstancing_triangles_potential_hit_ext        COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --sw-instancing --triangles-potential-hit)
+MY_ADD_TEST_EXT(NAME rthwif_test_swinstancing_triangles_anyhit_shader_commit_ext COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --sw-instancing --triangles-anyhit-shader-commit)
+MY_ADD_TEST_EXT(NAME rthwif_test_swinstancing_triangles_anyhit_shader_reject_ext COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --sw-instancing --triangles-anyhit-shader-reject)
+MY_ADD_TEST_EXT(NAME rthwif_test_swinstancing_procedurals_committed_hit_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --sw-instancing --procedurals-committed-hit)
+
+FINALIZE_BAT_TEST(${BAT_TEST_FILE_EXT})
+FINALIZE_SHELL_TEST(${SHELL_TEST_FILE_EXT})
 
 INSTALL(TARGETS embree_rthwif_cornell_box RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
+INSTALL(TARGETS embree_rthwif_cornell_box_ext RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
 INSTALL(FILES   "${CMAKE_CURRENT_SOURCE_DIR}/cornell_box_reference.tga" DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
 
 INSTALL(TARGETS embree_rthwif_test RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
+INSTALL(TARGETS embree_rthwif_test_ext RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT test)
 
 INSTALL(FILES   "${CTEST_TEST_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME "CTestTestfile.cmake" COMPONENT test)
 

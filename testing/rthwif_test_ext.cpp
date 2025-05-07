@@ -1,3 +1,5 @@
+// DO NOT EDIT! THIS FILE IS GENERATED!!!!!!!!!!!!!!!!!
+
 // Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
@@ -117,8 +119,8 @@ sycl::float3 RandomSampler_getFloat3(RandomSampler& self)
 
 RandomSampler rng;
 
-ze_rtas_builder_exp_handle_t hBuilder = nullptr;
-ze_rtas_parallel_operation_exp_handle_t parallelOperation = nullptr;
+ze_rtas_builder_ext_handle_t hBuilder = nullptr;
+ze_rtas_parallel_operation_ext_handle_t parallelOperation = nullptr;
 
 enum class InstancingType
 {
@@ -406,7 +408,7 @@ struct Bounds3f
     return { sycl::float3(INFINITY), sycl::float3(-INFINITY) };
   }
 
-  operator ze_rtas_aabb_exp_t () const {
+  operator ze_rtas_aabb_ext_t () const {
     return { { lower.x(), lower.y(), lower.z() }, { upper.x(), upper.y(), upper.z() } };
   }
   
@@ -491,17 +493,17 @@ struct Hit
 };
 
 
-struct GEOMETRY_INSTANCE_DESC : ze_rtas_builder_instance_geometry_info_exp_t
+struct GEOMETRY_INSTANCE_DESC : ze_rtas_builder_instance_geometry_info_ext_t
 {
-  ze_rtas_transform_float3x4_aligned_column_major_exp_t xfmdata;
+  ze_rtas_transform_float3x4_aligned_column_major_ext_t xfmdata;
 };
 
 typedef union GEOMETRY_DESC
 {
-  ze_rtas_builder_geometry_type_exp_t geometryType;
-  ze_rtas_builder_triangles_geometry_info_exp_t Triangles;
-  ze_rtas_builder_quads_geometry_info_exp_t Quads;
-  ze_rtas_builder_procedural_geometry_info_exp_t AABBs;
+  ze_rtas_builder_geometry_type_ext_t geometryType;
+  ze_rtas_builder_triangles_geometry_info_ext_t Triangles;
+  ze_rtas_builder_quads_geometry_info_ext_t Quads;
+  ze_rtas_builder_procedural_geometry_info_ext_t AABBs;
   GEOMETRY_INSTANCE_DESC Instance;
 
 } GEOMETRY_DESC;
@@ -522,7 +524,7 @@ struct Geometry
     throw std::runtime_error("Geometry::transform not implemented");
   }
 
-  virtual void buildAccel(sycl::device& device, sycl::context& context, BuildMode buildMode, ze_rtas_builder_build_quality_hint_exp_t quality) {
+  virtual void buildAccel(sycl::device& device, sycl::context& context, BuildMode buildMode, ze_rtas_builder_build_quality_hint_ext_t quality) {
   };
 
   virtual void buildTriMap(Transform local_to_world, std::vector<uint32_t> id_stack, uint32_t instUserID, bool procedural_instance, std::vector<Hit>& tri_map) = 0;
@@ -536,7 +538,7 @@ struct TriangleMesh : public Geometry
 {
 public:
 
-  TriangleMesh (ze_rtas_builder_geometry_exp_flags_t gflags = 0, bool procedural = false)
+  TriangleMesh (ze_rtas_builder_geometry_ext_flags_t gflags = 0, bool procedural = false)
     : Geometry(Type::TRIANGLE_MESH),
       gflags(gflags), procedural(procedural),
       triangles_alloc(context,device,sycl::ext::oneapi::property::usm::device_read_only()), triangles(0,triangles_alloc),
@@ -561,16 +563,16 @@ public:
       vertices[i] = xfmPoint(xfm,vertices[i]);
   }
 
-  static void getBoundsCallback (ze_rtas_geometry_aabbs_exp_cb_params_t* params)
+  static void getBoundsCallback (ze_rtas_geometry_aabbs_ext_cb_params_t* params)
   {
-    assert(params->stype == ZE_STRUCTURE_TYPE_RTAS_GEOMETRY_AABBS_EXP_CB_PARAMS);
+    assert(params->stype == ZE_STRUCTURE_TYPE_RTAS_GEOMETRY_AABBS_EXT_CB_PARAMS);
     const TriangleMesh* mesh = (TriangleMesh*) params->pGeomUserPtr;
 
     for (uint32_t i=0; i<params->primIDCount; i++)
     {
       const uint32_t primID = params->primID+i;
       const Bounds3f bounds = mesh->getBounds(primID);
-      ze_rtas_aabb_exp_t* boundsOut = params->pBoundsOut;
+      ze_rtas_aabb_ext_t* boundsOut = params->pBoundsOut;
       boundsOut[i].lower.x = bounds.lower.x();
       boundsOut[i].lower.y = bounds.lower.y();
       boundsOut[i].lower.z = bounds.lower.z();
@@ -584,9 +586,9 @@ public:
   {
     if (procedural)
     {
-      ze_rtas_builder_procedural_geometry_info_exp_t& out =  desc->AABBs;
+      ze_rtas_builder_procedural_geometry_info_ext_t& out =  desc->AABBs;
       memset(&out,0,sizeof(out));
-      out.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_PROCEDURAL;
+      out.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_PROCEDURAL;
       out.geometryFlags = gflags;
       out.geometryMask = 0xFF;
       out.primCount = triangles.size();
@@ -595,17 +597,17 @@ public:
     }
     else
     {
-      ze_rtas_builder_triangles_geometry_info_exp_t& out = desc->Triangles;
+      ze_rtas_builder_triangles_geometry_info_ext_t& out = desc->Triangles;
       memset(&out,0,sizeof(out));
-      out.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_TRIANGLES;
+      out.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_TRIANGLES;
       out.geometryFlags = gflags;
       out.geometryMask = 0xFF;
-      out.triangleFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXP_TRIANGLE_INDICES_UINT32;
-      out.vertexFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXP_FLOAT3;
-      out.pTriangleBuffer = (ze_rtas_triangle_indices_uint32_exp_t*) triangles.data();
+      out.triangleFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_TRIANGLE_INDICES_UINT32;
+      out.vertexFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_FLOAT3;
+      out.pTriangleBuffer = (ze_rtas_triangle_indices_uint32_ext_t*) triangles.data();
       out.triangleCount = triangles.size();
       out.triangleStride = sizeof(sycl::int4);
-      out.pVertexBuffer = (ze_rtas_float3_exp_t*) vertices.data();
+      out.pVertexBuffer = (ze_rtas_float3_ext_t*) vertices.data();
       out.vertexCount = vertices.size();
       out.vertexStride = sizeof(sycl::float3);
     }
@@ -757,7 +759,7 @@ public:
 
   
 public:
-  ze_rtas_builder_geometry_exp_flags_t gflags = 0;
+  ze_rtas_builder_geometry_ext_flags_t gflags = 0;
   bool procedural = false;
   
   typedef sycl::usm_allocator<sycl::int4, sycl::usm::alloc::shared> triangles_alloc_ty;
@@ -786,15 +788,15 @@ struct InstanceGeometryT : public Geometry
     sycl::free(ptr,context);
   }
 
-  static void getBoundsCallback (ze_rtas_geometry_aabbs_exp_cb_params_t* params)
+  static void getBoundsCallback (ze_rtas_geometry_aabbs_ext_cb_params_t* params)
   {
-    assert(params->stype == ZE_STRUCTURE_TYPE_RTAS_GEOMETRY_AABBS_EXP_CB_PARAMS);
+    assert(params->stype == ZE_STRUCTURE_TYPE_RTAS_GEOMETRY_AABBS_EXT_CB_PARAMS);
     assert(params->primID == 0);
     assert(params->primIDCount == 1);
     const InstanceGeometryT* inst = (InstanceGeometryT*) params->pGeomUserPtr;
     const Bounds3f scene_bounds = inst->scene->getBounds();
     const Bounds3f bounds = xfmBounds(inst->local2world, scene_bounds);
-    ze_rtas_aabb_exp_t* boundsOut = params->pBoundsOut;
+    ze_rtas_aabb_ext_t* boundsOut = params->pBoundsOut;
     boundsOut->lower.x = bounds.lower.x();
     boundsOut->lower.y = bounds.lower.y();
     boundsOut->lower.z = bounds.lower.z();
@@ -807,9 +809,9 @@ struct InstanceGeometryT : public Geometry
   {
     if (procedural)
     {
-      ze_rtas_builder_procedural_geometry_info_exp_t& out = desc->AABBs;
+      ze_rtas_builder_procedural_geometry_info_ext_t& out = desc->AABBs;
       memset(&out,0,sizeof(out));
-      out.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_PROCEDURAL;
+      out.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_PROCEDURAL;
       out.geometryFlags = 0;
       out.geometryMask = 0xFF;
       out.primCount = 1;
@@ -820,11 +822,11 @@ struct InstanceGeometryT : public Geometry
     {
       GEOMETRY_INSTANCE_DESC& out = desc->Instance;
       memset(&out,0,sizeof(GEOMETRY_INSTANCE_DESC));
-      out.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_INSTANCE;
+      out.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_INSTANCE;
       out.instanceFlags = 0;
       out.geometryMask = 0xFF;
       out.instanceUserID = instUserID;
-      out.transformFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXP_FLOAT3X4_ALIGNED_COLUMN_MAJOR;
+      out.transformFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_FLOAT3X4_ALIGNED_COLUMN_MAJOR;
       out.pTransform = (float*)&out.xfmdata;
       out.xfmdata.vx_x = local2world.vx.x();
       out.xfmdata.vx_y = local2world.vx.y();
@@ -847,7 +849,7 @@ struct InstanceGeometryT : public Geometry
     }
   }
 
-  virtual void buildAccel(sycl::device& device, sycl::context& context, BuildMode buildMode, ze_rtas_builder_build_quality_hint_exp_t quality) override {
+  virtual void buildAccel(sycl::device& device, sycl::context& context, BuildMode buildMode, ze_rtas_builder_build_quality_hint_ext_t quality) override {
     scene->buildAccel(device,context,buildMode);
   }
 
@@ -898,7 +900,7 @@ void* alloc_accel_buffer_internal(size_t bytes, sycl::device device, sycl::conte
   ze_context_handle_t hContext = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(context);
   ze_device_handle_t  hDevice  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
 
-  ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
+  ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
   ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
   ze_result_t err = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
   if (err != ZE_RESULT_SUCCESS)
@@ -999,7 +1001,7 @@ struct Scene
     : geometries_alloc(context,device,sycl::ext::oneapi::property::usm::device_read_only()), geometries(0,geometries_alloc), bounds(Bounds3f::empty()), accel(nullptr) 
   {
     std::shared_ptr<TriangleMesh> plane = createTrianglePlane(sycl::float3(0,0,0), sycl::float3(width,0,0), sycl::float3(0,height,0), width, height);
-    plane->gflags = opaque ? (ze_rtas_builder_geometry_exp_flag_t) 0 : ZE_RTAS_BUILDER_GEOMETRY_EXP_FLAG_NON_OPAQUE;
+    plane->gflags = opaque ? (ze_rtas_builder_geometry_ext_flag_t) 0 : ZE_RTAS_BUILDER_GEOMETRY_EXT_FLAG_NON_OPAQUE;
     plane->procedural = procedural;
     geometries.push_back(plane);
   }
@@ -1148,11 +1150,11 @@ struct Scene
 
   void buildAccel(sycl::device& device, sycl::context& context, BuildMode buildMode, bool benchmark = false)
   {
-     ze_rtas_builder_build_quality_hint_exp_t quality = (ze_rtas_builder_build_quality_hint_exp_t) (RandomSampler_getUInt(rng) % 3);
+     ze_rtas_builder_build_quality_hint_ext_t quality = (ze_rtas_builder_build_quality_hint_ext_t) (RandomSampler_getUInt(rng) % 3);
      
     /* fill geometry descriptor buffer */
     std::vector<GEOMETRY_DESC> desc(size());
-    std::vector<const ze_rtas_builder_geometry_info_exp_t*> geom(size());
+    std::vector<const ze_rtas_builder_geometry_info_ext_t*> geom(size());
     size_t numPrimitives = 0;
     for (size_t geomID=0; geomID<size(); geomID++)
     {
@@ -1167,12 +1169,12 @@ struct Scene
       numPrimitives += g->getNumPrimitives();
       g->buildAccel(device,context,buildMode,quality);
       g->getDesc(&desc[geomID]);
-      geom[geomID] = (const ze_rtas_builder_geometry_info_exp_t*) &desc[geomID];
+      geom[geomID] = (const ze_rtas_builder_geometry_info_ext_t*) &desc[geomID];
     }
 
     ze_device_handle_t hDevice = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
 
-    ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
+    ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
     ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
     ze_result_t err = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
     if (err != ZE_RESULT_SUCCESS)
@@ -1180,15 +1182,15 @@ struct Scene
     
     /* estimate accel size */
     size_t accelBufferBytesOut = 0;
-    ze_rtas_aabb_exp_t bounds;
-    ze_rtas_builder_build_op_exp_desc_t args;
+    ze_rtas_aabb_ext_t bounds;
+    ze_rtas_builder_build_op_ext_desc_t args;
     memset(&args,0,sizeof(args));
-    args.stype = ZE_STRUCTURE_TYPE_RTAS_BUILDER_BUILD_OP_EXP_DESC;
+    args.stype = ZE_STRUCTURE_TYPE_RTAS_BUILDER_BUILD_OP_EXT_DESC;
     args.pNext = nullptr;
     args.rtasFormat = rtasProp.rtasFormat;
     args.buildQuality = quality;
     args.buildFlags = 0;
-    args.ppGeometries = (const ze_rtas_builder_geometry_info_exp_t**) geom.data();
+    args.ppGeometries = (const ze_rtas_builder_geometry_info_ext_t**) geom.data();
     args.numGeometries = geom.size();
 
     /* just for debugging purposes */
@@ -1198,8 +1200,8 @@ struct Scene
     args.pNext = &buildOpDebug;
 #endif
     
-    ze_rtas_builder_exp_properties_t size = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXP_PROPERTIES };
-    err = ZeWrapper::zeRTASBuilderGetBuildPropertiesExp(hBuilder,&args,&size);
+    ze_rtas_builder_ext_properties_t size = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXT_PROPERTIES };
+    err = ZeWrapper::zeRTASBuilderGetBuildPropertiesExt(hBuilder,&args,&size);
     if (err != ZE_RESULT_SUCCESS)
       throw std::runtime_error("BVH size estimate failed");
 
@@ -1229,7 +1231,7 @@ struct Scene
 
       for (size_t i=0; i<numIterations; i++)
       {
-        err = ZeWrapper::zeRTASBuilderBuildExp(hBuilder,&args,
+        err = ZeWrapper::zeRTASBuilderBuildExt(hBuilder,&args,
                                         scratchBuffer.data(),scratchBuffer.size(),
                                         accel, accelBytes,
                                         parallelOperation,
@@ -1237,15 +1239,15 @@ struct Scene
 
         if (parallelOperation)
         {
-          assert(err == ZE_RESULT_EXP_RTAS_BUILD_DEFERRED);
+          assert(err == ZE_RESULT_EXT_RTAS_BUILD_DEFERRED);
           
-          ze_rtas_parallel_operation_exp_properties_t prop = { ZE_STRUCTURE_TYPE_RTAS_PARALLEL_OPERATION_EXP_PROPERTIES };
-          err = ZeWrapper::zeRTASParallelOperationGetPropertiesExp(parallelOperation,&prop);
+          ze_rtas_parallel_operation_ext_properties_t prop = { ZE_STRUCTURE_TYPE_RTAS_PARALLEL_OPERATION_EXT_PROPERTIES };
+          err = ZeWrapper::zeRTASParallelOperationGetPropertiesExt(parallelOperation,&prop);
           if (err != ZE_RESULT_SUCCESS)
             throw std::runtime_error("get max concurrency failed");
           
           tbb::parallel_for(0u, prop.maxConcurrency, 1u, [&](uint32_t) {
-            err = ZeWrapper::zeRTASParallelOperationJoinExp(parallelOperation);
+            err = ZeWrapper::zeRTASParallelOperationJoinExt(parallelOperation);
           });
         }
       
@@ -1275,7 +1277,7 @@ struct Scene
         memset(accel,0,accelBytes+sentinelBytes);
 
         /* build accel */
-        err = ZeWrapper::zeRTASBuilderBuildExp(hBuilder,&args,
+        err = ZeWrapper::zeRTASBuilderBuildExt(hBuilder,&args,
                                         scratchBuffer.data(),scratchBuffer.size(),
                                         accel, accelBytes,
                                         parallelOperation,
@@ -1283,19 +1285,19 @@ struct Scene
 
         if (parallelOperation)
         {
-          assert(err == ZE_RESULT_EXP_RTAS_BUILD_DEFERRED);
+          assert(err == ZE_RESULT_EXT_RTAS_BUILD_DEFERRED);
           
-          ze_rtas_parallel_operation_exp_properties_t prop = { ZE_STRUCTURE_TYPE_RTAS_PARALLEL_OPERATION_EXP_PROPERTIES };
-          err = ZeWrapper::zeRTASParallelOperationGetPropertiesExp(parallelOperation,&prop);
+          ze_rtas_parallel_operation_ext_properties_t prop = { ZE_STRUCTURE_TYPE_RTAS_PARALLEL_OPERATION_EXT_PROPERTIES };
+          err = ZeWrapper::zeRTASParallelOperationGetPropertiesExt(parallelOperation,&prop);
           if (err != ZE_RESULT_SUCCESS)
             throw std::runtime_error("get max concurrency failed");
           
           tbb::parallel_for(0u, prop.maxConcurrency, 1u, [&](uint32_t) {
-            err = ZeWrapper::zeRTASParallelOperationJoinExp(parallelOperation);
+            err = ZeWrapper::zeRTASParallelOperationJoinExt(parallelOperation);
           });
         }
         
-        if (err != ZE_RESULT_EXP_RTAS_BUILD_RETRY)
+        if (err != ZE_RESULT_EXT_RTAS_BUILD_RETRY)
           break;
 
         if (accelBufferBytesOut < bytes || size.rtasBufferSizeBytesMaxRequired < accelBufferBytesOut )
@@ -1367,7 +1369,7 @@ struct Scene
   geometries_alloc_ty geometries_alloc;
   std::vector<std::shared_ptr<Geometry>, geometries_alloc_ty> geometries;
 
-  ze_rtas_aabb_exp_t bounds;
+  ze_rtas_aabb_ext_t bounds;
   void* accel;
 };
 
@@ -2149,9 +2151,9 @@ int main(int argc, char* argv[]) try
   }
 
   if (rtas_build_mode == ZeWrapper::INTERNAL)
-    std::cout << "using internal RTAS builder (ZE_experimental_rtas_builder)" << std::endl;
+    std::cout << "using internal RTAS builder (ZE_extension_rtas)" << std::endl;
   else
-    std::cout << "using Level Zero RTAS builder (ZE_experimental_rtas_builder)" << std::endl;
+    std::cout << "using Level Zero RTAS builder (ZE_extension_rtas)" << std::endl;
 
   if (jit_cache)
     std::cout << "WARNING: JIT caching is not supported!" << std::endl;
@@ -2216,23 +2218,23 @@ int main(int argc, char* argv[]) try
   bool ze_rtas_builder = false;
   for (uint32_t i=0; i<extensions.size(); i++)
   {
-    if (strncmp("ZE_experimental_rtas_builder",extensions[i].name,sizeof(extensions[i].name)) == 0)
+    if (strncmp("ZE_extension_rtas",extensions[i].name,sizeof(extensions[i].name)) == 0)
       ze_rtas_builder = true;
   }
   if (!ze_rtas_builder)
-    throw std::runtime_error("ZE_experimental_rtas_builder extension not available");
+    throw std::runtime_error("ZE_extension_rtas extension not available");
 
   /* initialize RTAS builder extension in ZeWrapper */
-  result = ZeWrapper::initRTASBuilder(EXP_API,hDriver,rtas_build_mode);
+  result = ZeWrapper::initRTASBuilder(EXT_API,hDriver,rtas_build_mode);
 
   if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
-    throw std::runtime_error("cannot load ZE_experimental_rtas_builder extension");
+    throw std::runtime_error("cannot load ZE_extension_rtas extension");
   
   if (result != ZE_RESULT_SUCCESS)
-    throw std::runtime_error("cannot initialize ZE_experimental_rtas_builder extension");
+    throw std::runtime_error("cannot initialize ZE_extension_rtas extension");
   
   /* get acceleration structure format for this device */
-  ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
+  ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
   ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
   ze_result_t err = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
   if (err != ZE_RESULT_SUCCESS)
@@ -2242,12 +2244,12 @@ int main(int argc, char* argv[]) try
   std::cout << "RTAS alignment = " << rtasProp.rtasBufferAlignment << std::endl;
     
   /* create L0 builder object */
-  ze_rtas_builder_exp_desc_t builderDesc = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXP_DESC };
-  err = ZeWrapper::zeRTASBuilderCreateExp(hDriver, &builderDesc, &hBuilder);
+  ze_rtas_builder_ext_desc_t builderDesc = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXT_DESC };
+  err = ZeWrapper::zeRTASBuilderCreateExt(hDriver, &builderDesc, &hBuilder);
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("ze_rtas_builder creation failed");
 
-  err = ZeWrapper::zeRTASParallelOperationCreateExp(hDriver,&parallelOperation);
+  err = ZeWrapper::zeRTASParallelOperationCreateExt(hDriver,&parallelOperation);
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("parallel operation creation failed");
 
@@ -2259,12 +2261,12 @@ int main(int argc, char* argv[]) try
   else
     numErrors = executeTest(device,queue,context,inst,test);
 
-  err = ZeWrapper::zeRTASParallelOperationDestroyExp(parallelOperation);
+  err = ZeWrapper::zeRTASParallelOperationDestroyExt(parallelOperation);
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("parallel operation destruction failed");
 
   /* destroy rtas builder again */
-  err = ZeWrapper::zeRTASBuilderDestroyExp(hBuilder);
+  err = ZeWrapper::zeRTASBuilderDestroyExt(hBuilder);
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("ze_rtas_builder destruction failed");
   

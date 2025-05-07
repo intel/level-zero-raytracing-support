@@ -1,3 +1,5 @@
+// DO NOT EDIT! THIS FILE IS GENERATED!!!!!!!!!!!!!!!!!
+
 // Copyright 2009-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
@@ -107,7 +109,7 @@ void* alloc_accel_buffer(size_t bytes, sycl::device device, sycl::context contex
   ze_context_handle_t hContext = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(context);
   ze_device_handle_t  hDevice  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
   
-  ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
+  ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
   ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
   ze_result_t err = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
   if (err != ZE_RESULT_SUCCESS)
@@ -190,7 +192,7 @@ void* allocDispatchGlobals(sycl::device device, sycl::context context)
 }
 
 /* vertex indices for cornell_box model */
-ze_rtas_triangle_indices_uint32_exp_t indices[] = {
+ze_rtas_triangle_indices_uint32_ext_t indices[] = {
   { 0, 1, 2 },
   { 0, 2, 3 },
   { 4, 5, 6 },
@@ -228,7 +230,7 @@ ze_rtas_triangle_indices_uint32_exp_t indices[] = {
 };
 
 /* vertex positions for cornell_box model */
-ze_rtas_float3_exp_t vertices[] = {
+ze_rtas_float3_ext_t vertices[] = {
   { 552.8, 0, 0 },
   { 0, 0, 0 },
   { 0, 0, 559.2 },
@@ -307,55 +309,55 @@ void* build_rtas(sycl::device device, sycl::context context)
   ze_device_handle_t hDevice = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
     
   /* create rtas builder object */
-  ze_rtas_builder_exp_desc_t builderDesc = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXP_DESC };
-  ze_rtas_builder_exp_handle_t hBuilder = nullptr;
-  ze_result_t err = ZeWrapper::zeRTASBuilderCreateExp(hDriver, &builderDesc, &hBuilder);
+  ze_rtas_builder_ext_desc_t builderDesc = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXT_DESC };
+  ze_rtas_builder_ext_handle_t hBuilder = nullptr;
+  ze_result_t err = ZeWrapper::zeRTASBuilderCreateExt(hDriver, &builderDesc, &hBuilder);
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("ze_rtas_builder creation failed");
     
   /* create geometry descriptor for single triangle mesh */
-  ze_rtas_builder_triangles_geometry_info_exp_t mesh = {};
-  mesh.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_TRIANGLES;
+  ze_rtas_builder_triangles_geometry_info_ext_t mesh = {};
+  mesh.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_TRIANGLES;
   mesh.geometryFlags = 0;
   mesh.geometryMask = 0xFF;
   
-  mesh.triangleFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXP_TRIANGLE_INDICES_UINT32;
-  mesh.triangleCount = sizeof(indices)/sizeof(ze_rtas_triangle_indices_uint32_exp_t);
-  mesh.triangleStride = sizeof(ze_rtas_triangle_indices_uint32_exp_t);
+  mesh.triangleFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_TRIANGLE_INDICES_UINT32;
+  mesh.triangleCount = sizeof(indices)/sizeof(ze_rtas_triangle_indices_uint32_ext_t);
+  mesh.triangleStride = sizeof(ze_rtas_triangle_indices_uint32_ext_t);
   mesh.pTriangleBuffer = indices;
 
-  mesh.vertexFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXP_FLOAT3;
-  mesh.vertexCount = sizeof(vertices)/sizeof(ze_rtas_float3_exp_t);
-  mesh.vertexStride = sizeof(ze_rtas_float3_exp_t);
+  mesh.vertexFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_FLOAT3;
+  mesh.vertexCount = sizeof(vertices)/sizeof(ze_rtas_float3_ext_t);
+  mesh.vertexStride = sizeof(ze_rtas_float3_ext_t);
   mesh.pVertexBuffer = vertices;
 
   /* fill geometry descriptor array with pointer to single geometry descriptor */
-  std::vector<ze_rtas_builder_geometry_info_exp_t*> descs;
-  descs.push_back((ze_rtas_builder_geometry_info_exp_t*)&mesh);
+  std::vector<ze_rtas_builder_geometry_info_ext_t*> descs;
+  descs.push_back((ze_rtas_builder_geometry_info_ext_t*)&mesh);
   
   /* get acceleration structure format for this device */
-  ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
+  ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
   ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
   err = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("zeDeviceGetProperties failed");
 
   /* create parallel operation for parallel build */
-  ze_rtas_parallel_operation_exp_handle_t hParallelOperation = nullptr;
-  err = ZeWrapper::zeRTASParallelOperationCreateExp(hDriver, &hParallelOperation);
+  ze_rtas_parallel_operation_ext_handle_t hParallelOperation = nullptr;
+  err = ZeWrapper::zeRTASParallelOperationCreateExt(hDriver, &hParallelOperation);
   if (err != ZE_RESULT_SUCCESS)
-    throw std::runtime_error("zeRTASParallelOperationCreateExp failed");
+    throw std::runtime_error("zeRTASParallelOperationCreateExt failed");
 
   /* create descriptor of build operation */
   size_t accelBufferBytesOut = 0;
-  ze_rtas_aabb_exp_t bounds;
-  ze_rtas_builder_build_op_exp_desc_t buildOp = {};
-  buildOp.stype = ZE_STRUCTURE_TYPE_RTAS_BUILDER_BUILD_OP_EXP_DESC;
+  ze_rtas_aabb_ext_t bounds;
+  ze_rtas_builder_build_op_ext_desc_t buildOp = {};
+  buildOp.stype = ZE_STRUCTURE_TYPE_RTAS_BUILDER_BUILD_OP_EXT_DESC;
   buildOp.pNext = nullptr;
   buildOp.rtasFormat = rtasProp.rtasFormat;
-  buildOp.buildQuality = ZE_RTAS_BUILDER_BUILD_QUALITY_HINT_EXP_MEDIUM;
+  buildOp.buildQuality = ZE_RTAS_BUILDER_BUILD_QUALITY_HINT_EXT_MEDIUM;
   buildOp.buildFlags = 0;
-  buildOp.ppGeometries = (const ze_rtas_builder_geometry_info_exp_t **) descs.data();
+  buildOp.ppGeometries = (const ze_rtas_builder_geometry_info_ext_t **) descs.data();
   buildOp.numGeometries = descs.size();
 
   /* just for debugging purposes */
@@ -366,10 +368,10 @@ void* build_rtas(sycl::device device, sycl::context context)
 #endif
 
   /* query required buffer sizes */
-  ze_rtas_builder_exp_properties_t buildProps = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXP_PROPERTIES };
-  err = ZeWrapper::zeRTASBuilderGetBuildPropertiesExp(hBuilder,&buildOp,&buildProps);
+  ze_rtas_builder_ext_properties_t buildProps = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXT_PROPERTIES };
+  err = ZeWrapper::zeRTASBuilderGetBuildPropertiesExt(hBuilder,&buildOp,&buildProps);
   if (err != ZE_RESULT_SUCCESS)
-    throw std::runtime_error("zeRTASBuilderGetBuildPropertiesExp failed");
+    throw std::runtime_error("zeRTASBuilderGetBuildPropertiesExt failed");
 
   /* allocate scratch buffer */
   std::vector<char> scratchBuffer(buildProps.scratchBufferSizeBytes);
@@ -381,39 +383,39 @@ void* build_rtas(sycl::device device, sycl::context context)
   memset(accel,0,accelBytes); // optional
   
   /* build acceleration strucuture multi threaded */
-  err = ZeWrapper::zeRTASBuilderBuildExp(hBuilder,&buildOp,
+  err = ZeWrapper::zeRTASBuilderBuildExt(hBuilder,&buildOp,
                                   scratchBuffer.data(),scratchBuffer.size(),
                                   accel, accelBytes,
                                   hParallelOperation,
                                   nullptr, &bounds, &accelBufferBytesOut);
   
-  if (err != ZE_RESULT_EXP_RTAS_BUILD_DEFERRED)
-    throw std::runtime_error("zeRTASBuilderBuildExp failed");
+  if (err != ZE_RESULT_EXT_RTAS_BUILD_DEFERRED)
+    throw std::runtime_error("zeRTASBuilderBuildExt failed");
 
   /* after the build is started one can query number of threads to use for the build */
-  ze_rtas_parallel_operation_exp_properties_t prop = { ZE_STRUCTURE_TYPE_RTAS_PARALLEL_OPERATION_EXP_PROPERTIES };
-  err = ZeWrapper::zeRTASParallelOperationGetPropertiesExp(hParallelOperation,&prop);
+  ze_rtas_parallel_operation_ext_properties_t prop = { ZE_STRUCTURE_TYPE_RTAS_PARALLEL_OPERATION_EXT_PROPERTIES };
+  err = ZeWrapper::zeRTASParallelOperationGetPropertiesExt(hParallelOperation,&prop);
 
   if (err != ZE_RESULT_SUCCESS)
-    throw std::runtime_error("zeRTASParallelOperationGetPropertiesExp failed");
+    throw std::runtime_error("zeRTASParallelOperationGetPropertiesExt failed");
 
   /* build in parallel using maximal number of build threads */
   tbb::parallel_for(0u, prop.maxConcurrency, 1u, [&](uint32_t) {
-    err = ZeWrapper::zeRTASParallelOperationJoinExp(hParallelOperation);
+    err = ZeWrapper::zeRTASParallelOperationJoinExt(hParallelOperation);
   });
   
   if (err != ZE_RESULT_SUCCESS)
-    throw std::runtime_error("zeRTASParallelOperationJoinExp failed");
+    throw std::runtime_error("zeRTASParallelOperationJoinExt failed");
 
   /* destroy parallel operation again */
-  err = ZeWrapper::zeRTASParallelOperationDestroyExp(hParallelOperation);
+  err = ZeWrapper::zeRTASParallelOperationDestroyExt(hParallelOperation);
   if (err != ZE_RESULT_SUCCESS)
-    throw std::runtime_error("zeRTASParallelOperationDestroyExp failed");
+    throw std::runtime_error("zeRTASParallelOperationDestroyExt failed");
 
   /* destroy rtas builder again */
-  err = ZeWrapper::zeRTASBuilderDestroyExp(hBuilder);
+  err = ZeWrapper::zeRTASBuilderDestroyExt(hBuilder);
   if (err != ZE_RESULT_SUCCESS)
-    throw std::runtime_error("zeRTASBuilderDestroyExp failed");
+    throw std::runtime_error("zeRTASBuilderDestroyExt failed");
   
   return accel;
 }
@@ -498,9 +500,9 @@ int main(int argc, char* argv[]) try
   }
 
   if (rtas_build_mode == ZeWrapper::INTERNAL)
-    std::cout << "using internal RTAS builder (ZE_experimental_rtas_builder)" << std::endl;
+    std::cout << "using internal RTAS builder (ZE_extension_rtas)" << std::endl;
   else
-    std::cout << "using Level Zero RTAS builder (ZE_experimental_rtas_builder)" << std::endl;
+    std::cout << "using Level Zero RTAS builder (ZE_extension_rtas)" << std::endl;
 
   /* create SYCL objects */
   sycl::device device = sycl::device(sycl::gpu_selector_v);
@@ -543,23 +545,23 @@ int main(int argc, char* argv[]) try
   bool ze_rtas_builder = false;
   for (uint32_t i=0; i<extensions.size(); i++)
   {
-    if (strncmp("ZE_experimental_rtas_builder",extensions[i].name,sizeof(extensions[i].name)) == 0)
+    if (strncmp("ZE_extension_rtas",extensions[i].name,sizeof(extensions[i].name)) == 0)
       ze_rtas_builder = true;
   }
   if (!ze_rtas_builder)
-    throw std::runtime_error("ZE_experimental_rtas_builder extension not available");
+    throw std::runtime_error("ZE_extension_rtas extension not available");
 
   /* initialize RTAS builder extension in ZeWrapper */
-  result = ZeWrapper::initRTASBuilder(EXP_API,hDriver,rtas_build_mode);
+  result = ZeWrapper::initRTASBuilder(EXT_API,hDriver,rtas_build_mode);
   
   if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
-    throw std::runtime_error("cannot load ZE_experimental_rtas_builder extension");
+    throw std::runtime_error("cannot load ZE_extension_rtas extension");
   
   if (result != ZE_RESULT_SUCCESS)
-    throw std::runtime_error("cannot initialize ZE_experimental_rtas_builder extension");
+    throw std::runtime_error("cannot initialize ZE_extension_rtas extension");
   
   /* get acceleration structure format for this device */
-  ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
+  ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
   ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
   result = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
   if (result != ZE_RESULT_SUCCESS)

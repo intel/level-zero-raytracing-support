@@ -4,6 +4,7 @@
 #define RTHWIF_EXPORT_API
 
 #include "rtbuild.h"
+#include "level_zero/ze_api_exp_ext.h" // handles EXP/EXT API differnces
 #include "qbvh6_builder_sah.h"
 
 namespace embree
@@ -105,7 +106,7 @@ namespace embree
     if (geom->pAccelerationStructure == nullptr) throw std::runtime_error("no acceleration structure to instanciate specified");
   }
 
-  inline bool buildBounds(const ze_rtas_builder_triangles_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
+  inline bool buildBounds(API_TY aty, const ze_rtas_builder_triangles_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
   {
     if (primID >= geom->triangleCount) return false;
     const ze_rtas_triangle_indices_uint32_exp_t tri = getPrimitive(geom,primID);
@@ -124,7 +125,7 @@ namespace embree
     return true;
   }
 
-  inline bool buildBounds(const ze_rtas_builder_quads_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
+  inline bool buildBounds(API_TY aty, const ze_rtas_builder_quads_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
   {
     if (primID >= geom->quadCount) return false;
     const ze_rtas_quad_indices_uint32_exp_t tri = getPrimitive(geom,primID);
@@ -146,7 +147,7 @@ namespace embree
     return true;
   }
 
-  inline bool buildBounds(const ze_rtas_builder_procedural_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
+  inline bool buildBounds(API_TY aty, const ze_rtas_builder_procedural_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
   {
     if (primID >= geom->primCount) return false;
     if (geom->pfnGetBoundsCb == nullptr) return false;
@@ -168,7 +169,7 @@ namespace embree
     return true;
   }
 
-  inline bool buildBounds(const ze_rtas_builder_instance_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
+  inline bool buildBounds(API_TY aty, const ze_rtas_builder_instance_geometry_info_exp_t* geom, uint32_t primID, BBox3fa& bbox, void* buildUserPtr)
   {
     if (primID >= 1) return false;
     if (geom->pAccelerationStructure == nullptr) return false;
@@ -188,13 +189,13 @@ namespace embree
   }
 
   template<typename GeometryType>
-  PrimInfo createGeometryPrimRefArray(const GeometryType* geom, void* buildUserPtr, evector<PrimRef>& prims, const range<size_t>& r, size_t k, unsigned int geomID)
+  PrimInfo createGeometryPrimRefArray(API_TY aty, const GeometryType* geom, void* buildUserPtr, evector<PrimRef>& prims, const range<size_t>& r, size_t k, unsigned int geomID)
   {
     PrimInfo pinfo(empty);
     for (uint32_t primID=r.begin(); primID<r.end(); primID++)
     {
       BBox3fa bounds = empty;
-      if (!buildBounds(geom,primID,bounds,buildUserPtr)) continue;
+      if (!buildBounds(aty,geom,primID,bounds,buildUserPtr)) continue;
       const PrimRef prim(bounds,geomID,primID);
       pinfo.add_center2(prim);
       prims[k++] = prim;
@@ -212,18 +213,18 @@ namespace embree
     
   } zet_base_desc_t_;
 
-  #define VALIDATE(arg) \
-  {\
-  ze_result_t result = validate(arg);\
-  if (result != ZE_RESULT_SUCCESS) return result; \
+#define VALIDATE(aty,arg)              \
+  {                                                   \
+    ze_result_t result = validate(aty,arg);  \
+    if (result != ZE_RESULT_SUCCESS) return result;   \
   }
 
-#define VALIDATE_PTR(arg)                       \
+#define VALIDATE_PTR(aty,arg)                                           \
   {                                                                     \
     if ((arg) == nullptr) return ZE_RESULT_ERROR_INVALID_NULL_POINTER; \
   }                                                                     \
 
-   ze_result_t validate(ze_driver_handle_t hDriver)
+  ze_result_t validate(API_TY aty, ze_driver_handle_t hDriver)
   {
     if (hDriver == nullptr)
       return ZE_RESULT_ERROR_INVALID_NULL_HANDLE;
@@ -231,7 +232,7 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
 
-  ze_result_t validate(ze_device_handle_t hDevice)
+  ze_result_t validate(API_TY aty, ze_device_handle_t hDevice)
   {
     if (hDevice == nullptr)
       return ZE_RESULT_ERROR_INVALID_NULL_HANDLE;
@@ -266,7 +267,7 @@ namespace embree
     uint32_t magick = MAGICK;
   };
 
-  ze_result_t validate(ze_rtas_builder_exp_handle_t hBuilder)
+  ze_result_t validate(API_TY aty, ze_rtas_builder_exp_handle_t hBuilder)
   {
     if (hBuilder == nullptr)
       return ZE_RESULT_ERROR_INVALID_NULL_HANDLE;
@@ -301,7 +302,7 @@ namespace embree
     tbb::task_group group;
   };
 
-  ze_result_t validate(ze_rtas_parallel_operation_exp_handle_t hParallelOperation)
+  ze_result_t validate(API_TY aty, ze_rtas_parallel_operation_exp_handle_t hParallelOperation)
   {
     if (hParallelOperation == nullptr)
       return ZE_RESULT_ERROR_INVALID_NULL_HANDLE;
@@ -309,7 +310,7 @@ namespace embree
     return ((ze_rtas_parallel_operation_t*)hParallelOperation)->verify();
   }
 
-  ze_result_t validate(const ze_rtas_builder_exp_desc_t* pDescriptor)
+  ze_result_t validate(API_TY aty, const ze_rtas_builder_exp_desc_t* pDescriptor)
   {
     if (pDescriptor == nullptr)
       return ZE_RESULT_ERROR_INVALID_NULL_POINTER;
@@ -326,7 +327,7 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
 
-  ze_result_t validate(ze_rtas_device_exp_properties_t* pProperties)
+  ze_result_t validate(API_TY aty, ze_rtas_device_exp_properties_t* pProperties)
   { 
     if (pProperties == nullptr)
       return ZE_RESULT_ERROR_INVALID_NULL_POINTER;
@@ -340,7 +341,7 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
 
-  ze_result_t validate(ze_rtas_format_exp_t rtasFormat)
+  ze_result_t validate(API_TY aty, ze_rtas_format_exp_t rtasFormat)
   {
     if (rtasFormat == ZE_RTAS_FORMAT_EXP_INVALID)
       return ZE_RESULT_ERROR_INVALID_ENUMERATION;
@@ -351,7 +352,7 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
   
-  ze_result_t validate(const ze_rtas_builder_build_op_exp_desc_t* args)
+  ze_result_t validate(API_TY aty, const ze_rtas_builder_build_op_exp_desc_t* args)
   {
     /* check for valid pointers */
     if (args == nullptr)
@@ -366,7 +367,7 @@ namespace embree
       return ZE_RESULT_ERROR_INVALID_ENUMERATION;
 
     /* check if acceleration structure format is supported */
-    VALIDATE(args->rtasFormat);
+    VALIDATE(aty,args->rtasFormat);
 
     /* check for valid geometries array */
     if (args->ppGeometries == nullptr && args->numGeometries > 0)
@@ -387,7 +388,7 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
 
-  ze_result_t validate(ze_rtas_builder_exp_properties_t* pProp)
+  ze_result_t validate(API_TY aty, ze_rtas_builder_exp_properties_t* pProp)
   {
     /* check for valid pointers */
     if (pProp == nullptr)
@@ -404,7 +405,7 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
 
-  ze_result_t validate(ze_rtas_parallel_operation_exp_properties_t* pProperties)
+  ze_result_t validate(API_TY aty, ze_rtas_parallel_operation_exp_properties_t* pProperties)
   {
     /* check for valid pointer */
     if (pProperties == nullptr)
@@ -421,32 +422,32 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
   
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderCreateExpImpl(ze_driver_handle_t hDriver, const ze_rtas_builder_exp_desc_t *pDescriptor, ze_rtas_builder_exp_handle_t *phBuilder)
+  ze_result_t zeRTASBuilderCreateImpl(API_TY aty, ze_driver_handle_t hDriver, const ze_rtas_builder_exp_desc_t *pDescriptor, ze_rtas_builder_exp_handle_t *phBuilder)
   {
     /* input validation */
-    VALIDATE(hDriver);
-    VALIDATE(pDescriptor);
-    VALIDATE_PTR(phBuilder);
+    VALIDATE(aty,hDriver);
+    VALIDATE(aty,pDescriptor);
+    VALIDATE_PTR(aty,phBuilder);
 
     *phBuilder = (ze_rtas_builder_exp_handle_t) new ze_rtas_builder();
     return ZE_RESULT_SUCCESS;
   }
 
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderDestroyExpImpl(ze_rtas_builder_exp_handle_t hBuilder)
+  ze_result_t zeRTASBuilderDestroyImpl(API_TY aty, ze_rtas_builder_exp_handle_t hBuilder)
   {
-    VALIDATE(hBuilder);
+    VALIDATE(aty,hBuilder);
     delete (ze_rtas_builder*) hBuilder;
     return ZE_RESULT_SUCCESS;
   }
 
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeDriverRTASFormatCompatibilityCheckExpImpl( ze_driver_handle_t hDriver,
+  ze_result_t zeDriverRTASFormatCompatibilityCheckImpl(API_TY aty,  ze_driver_handle_t hDriver,
                                                                                         const ze_rtas_format_exp_t accelFormat,
                                                                                         const ze_rtas_format_exp_t otherAccelFormat )
   {
     /* input validation */
-    VALIDATE(hDriver);
-    VALIDATE(accelFormat);
-    VALIDATE(otherAccelFormat);
+    VALIDATE(aty,hDriver);
+    VALIDATE(aty,accelFormat);
+    VALIDATE(aty,otherAccelFormat);
 
     /* check if rtas formats are compatible */
     if (accelFormat == otherAccelFormat)
@@ -467,14 +468,14 @@ namespace embree
     };
   }
   
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderGetBuildPropertiesExpImpl(ze_rtas_builder_exp_handle_t hBuilder,
+  ze_result_t zeRTASBuilderGetBuildPropertiesImpl(API_TY aty, ze_rtas_builder_exp_handle_t hBuilder,
                                                                                   const ze_rtas_builder_build_op_exp_desc_t* args,
                                                                                   ze_rtas_builder_exp_properties_t* pProp)
   {
     /* input validation */
-    VALIDATE(hBuilder);
-    VALIDATE(args);
-    VALIDATE(pProp);
+    VALIDATE(aty,hBuilder);
+    VALIDATE(aty,args);
+    VALIDATE(aty,pProp);
 
     const ze_rtas_builder_geometry_info_exp_t** geometries = args->ppGeometries;
     const size_t numGeometries = args->numGeometries;
@@ -512,7 +513,7 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
   
-  ze_result_t zeRTASBuilderBuildExpBody(const ze_rtas_builder_build_op_exp_desc_t* args,
+  ze_result_t zeRTASBuilderBuildBody(API_TY aty, const ze_rtas_builder_build_op_exp_desc_t* args,
                                             void *pScratchBuffer, size_t scratchBufferSizeBytes,
                                             void *pRtasBuffer, size_t rtasBufferSizeBytes,
                                             void *pBuildUserPtr, ze_rtas_aabb_exp_t *pBounds, size_t *pRtasBufferSizeBytes) try
@@ -559,10 +560,10 @@ namespace embree
       assert(geom);
 
       switch (geom->geometryType) {
-      case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_TRIANGLES  : return createGeometryPrimRefArray((ze_rtas_builder_triangles_geometry_info_exp_t*)geom,pBuildUserPtr,prims,r,k,geomID);
-      case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_QUADS      : return createGeometryPrimRefArray((ze_rtas_builder_quads_geometry_info_exp_t*    )geom,pBuildUserPtr,prims,r,k,geomID);
-      case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_PROCEDURAL: return createGeometryPrimRefArray((ze_rtas_builder_procedural_geometry_info_exp_t*)geom,pBuildUserPtr,prims,r,k,geomID);
-      case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_INSTANCE: return createGeometryPrimRefArray((ze_rtas_builder_instance_geometry_info_exp_t* )geom,pBuildUserPtr,prims,r,k,geomID);
+      case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_TRIANGLES  : return createGeometryPrimRefArray(aty,(ze_rtas_builder_triangles_geometry_info_exp_t*)geom,pBuildUserPtr,prims,r,k,geomID);
+      case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_QUADS      : return createGeometryPrimRefArray(aty,(ze_rtas_builder_quads_geometry_info_exp_t*    )geom,pBuildUserPtr,prims,r,k,geomID);
+      case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_PROCEDURAL: return createGeometryPrimRefArray(aty,(ze_rtas_builder_procedural_geometry_info_exp_t*)geom,pBuildUserPtr,prims,r,k,geomID);
+      case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_INSTANCE: return createGeometryPrimRefArray(aty,(ze_rtas_builder_instance_geometry_info_exp_t* )geom,pBuildUserPtr,prims,r,k,geomID);
       default: throw std::runtime_error("invalid geometry type");
       };
     };
@@ -635,8 +636,8 @@ namespace embree
 #if defined(EMBREE_SYCL_ALLOC_DISPATCH_GLOBALS)
     if (args->pNext) {
       zet_base_desc_t_* next = (zet_base_desc_t_*) args->pNext;
-      if (next->stype == ZE_STRUCTURE_TYPE_RTAS_BUILDER_BUILD_OP_DEBUG_EXP_DESC) {
-        ze_rtas_builder_build_op_debug_exp_desc_t* debug_ext = (ze_rtas_builder_build_op_debug_exp_desc_t*) next;
+      if (next->stype == ZE_STRUCTURE_TYPE_RTAS_BUILDER_BUILD_OP_DEBUG_DESC) {
+        ze_rtas_builder_build_op_debug_desc_t* debug_ext = (ze_rtas_builder_build_op_debug_desc_t*) next;
         dispatchGlobalsPtr = debug_ext->dispatchGlobalsPtr;
       }
     }
@@ -660,7 +661,7 @@ namespace embree
     return ZE_RESULT_ERROR_UNKNOWN;
   }
   
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderBuildExpImpl(ze_rtas_builder_exp_handle_t hBuilder,
+  ze_result_t zeRTASBuilderBuildImpl(API_TY aty, ze_rtas_builder_exp_handle_t hBuilder,
                                                                      const ze_rtas_builder_build_op_exp_desc_t* args,
                                                                      void *pScratchBuffer, size_t scratchBufferSizeBytes,
                                                                      void *pRtasBuffer, size_t rtasBufferSizeBytes,
@@ -668,15 +669,15 @@ namespace embree
                                                                      void *pBuildUserPtr, ze_rtas_aabb_exp_t *pBounds, size_t *pRtasBufferSizeBytes)
   {
     /* input validation */
-    VALIDATE(hBuilder);
-    VALIDATE(args);
-    VALIDATE_PTR(pScratchBuffer);
-    VALIDATE_PTR(pRtasBuffer);
+    VALIDATE(aty,hBuilder);
+    VALIDATE(aty,args);
+    VALIDATE_PTR(aty,pScratchBuffer);
+    VALIDATE_PTR(aty,pRtasBuffer);
     
     /* if parallel operation is provided then execute using thread arena inside task group ... */
     if (hParallelOperation)
     {
-      VALIDATE(hParallelOperation);
+      VALIDATE(aty,hParallelOperation);
       
       ze_rtas_parallel_operation_t* op = (ze_rtas_parallel_operation_t*) hParallelOperation;
       
@@ -686,7 +687,7 @@ namespace embree
       op->object_in_use.store(true);
       
       g_arena.execute([&](){ op->group.run([=](){
-         op->errorCode = zeRTASBuilderBuildExpBody(args,
+        op->errorCode = zeRTASBuilderBuildBody(aty,args,
                                                        pScratchBuffer, scratchBufferSizeBytes,
                                                        pRtasBuffer, rtasBufferSizeBytes,
                                                        pBuildUserPtr, pBounds, pRtasBufferSizeBytes);
@@ -698,7 +699,7 @@ namespace embree
     else
     {
       ze_result_t errorCode = ZE_RESULT_SUCCESS;
-      g_arena.execute([&](){ errorCode = zeRTASBuilderBuildExpBody(args,
+      g_arena.execute([&](){ errorCode = zeRTASBuilderBuildBody(aty,args,
                                                                         pScratchBuffer, scratchBufferSizeBytes,
                                                                         pRtasBuffer, rtasBufferSizeBytes,
                                                                         pBuildUserPtr, pBounds, pRtasBufferSizeBytes);
@@ -707,32 +708,32 @@ namespace embree
     }
   }
 
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationCreateExpImpl(ze_driver_handle_t hDriver, ze_rtas_parallel_operation_exp_handle_t* phParallelOperation)
+  ze_result_t zeRTASParallelOperationCreateImpl(API_TY aty, ze_driver_handle_t hDriver, ze_rtas_parallel_operation_exp_handle_t* phParallelOperation)
   {
     /* input validation */
-    VALIDATE(hDriver);
-    VALIDATE_PTR(phParallelOperation);
+    VALIDATE(aty,hDriver);
+    VALIDATE_PTR(aty,phParallelOperation);
 
     /* create parallel operation object */
     *phParallelOperation = (ze_rtas_parallel_operation_exp_handle_t) new ze_rtas_parallel_operation_t();
     return ZE_RESULT_SUCCESS;
   }
   
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationDestroyExpImpl( ze_rtas_parallel_operation_exp_handle_t hParallelOperation )
+  ze_result_t zeRTASParallelOperationDestroyImpl(API_TY aty,  ze_rtas_parallel_operation_exp_handle_t hParallelOperation )
   {
     /* input validation */
-    VALIDATE(hParallelOperation);
+    VALIDATE(aty,hParallelOperation);
 
     /* delete parallel operation */
     delete (ze_rtas_parallel_operation_t*) hParallelOperation;
     return ZE_RESULT_SUCCESS;
   }
   
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationGetPropertiesExpImpl( ze_rtas_parallel_operation_exp_handle_t hParallelOperation, ze_rtas_parallel_operation_exp_properties_t* pProperties )
+  ze_result_t zeRTASParallelOperationGetPropertiesImpl(API_TY aty,  ze_rtas_parallel_operation_exp_handle_t hParallelOperation, ze_rtas_parallel_operation_exp_properties_t* pProperties )
   {
     /* input validation */
-    VALIDATE(hParallelOperation);
-    VALIDATE(pProperties);
+    VALIDATE(aty,hParallelOperation);
+    VALIDATE(aty,pProperties);
 
     ze_rtas_parallel_operation_t* op = (ze_rtas_parallel_operation_t*) hParallelOperation;
     if (!op->object_in_use.load())
@@ -744,14 +745,113 @@ namespace embree
     return ZE_RESULT_SUCCESS;
   }
   
-  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationJoinExpImpl( ze_rtas_parallel_operation_exp_handle_t hParallelOperation)
+  ze_result_t zeRTASParallelOperationJoinImpl(API_TY aty,  ze_rtas_parallel_operation_exp_handle_t hParallelOperation)
   {
     /* check for valid handle */
-    VALIDATE(hParallelOperation);
+    VALIDATE(aty,hParallelOperation);
     
     ze_rtas_parallel_operation_t* op = (ze_rtas_parallel_operation_t*) hParallelOperation;
     g_arena.execute([&](){ op->group.wait(); });
     op->object_in_use.store(false); // this is slighty too early
     return op->errorCode;
+  }
+
+  /* entry points for EXT API */
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderCreateExtImpl(ze_driver_handle_t hDriver, const ze_rtas_builder_ext_desc_t *pDescriptor, ze_rtas_builder_ext_handle_t *phBuilder) {
+    return zeRTASBuilderCreateImpl(EXT_API, hDriver, (ze_rtas_builder_exp_desc_t*) pDescriptor, (ze_rtas_builder_exp_handle_t*) phBuilder);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderDestroyExtImpl(ze_rtas_builder_ext_handle_t hBuilder) {
+    return zeRTASBuilderDestroyImpl(EXT_API, (ze_rtas_builder_exp_handle_t) hBuilder);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeDriverRTASFormatCompatibilityCheckExtImpl( ze_driver_handle_t hDriver, const ze_rtas_format_ext_t accelFormat, const ze_rtas_format_ext_t otherAccelFormat ) {
+    return zeDriverRTASFormatCompatibilityCheckImpl( EXT_API, hDriver, (ze_rtas_format_exp_t) accelFormat, (ze_rtas_format_exp_t) otherAccelFormat );
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderGetBuildPropertiesExtImpl(ze_rtas_builder_ext_handle_t hBuilder, const ze_rtas_builder_build_op_ext_desc_t* args, ze_rtas_builder_ext_properties_t* pProp) {
+    return zeRTASBuilderGetBuildPropertiesImpl(EXT_API, (ze_rtas_builder_exp_handle_t) hBuilder, (const ze_rtas_builder_build_op_exp_desc_t*) args, (ze_rtas_builder_exp_properties_t*) pProp);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderBuildExtImpl(ze_rtas_builder_ext_handle_t hBuilder,
+                                                                     const ze_rtas_builder_build_op_ext_desc_t* args,
+                                                                     void *pScratchBuffer, size_t scratchBufferSizeBytes,
+                                                                     void *pRtasBuffer, size_t rtasBufferSizeBytes,
+                                                                     ze_rtas_parallel_operation_ext_handle_t hParallelOperation,
+                                                                     void *pBuildUserPtr, ze_rtas_aabb_ext_t *pBounds, size_t *pRtasBufferSizeBytes)
+  {
+    return zeRTASBuilderBuildImpl(EXT_API,
+                                  (ze_rtas_builder_exp_handle_t) hBuilder,
+                                  (const ze_rtas_builder_build_op_exp_desc_t*) args,
+                                  pScratchBuffer, scratchBufferSizeBytes,
+                                  pRtasBuffer, rtasBufferSizeBytes,
+                                  (ze_rtas_parallel_operation_exp_handle_t) hParallelOperation,
+                                  pBuildUserPtr, (ze_rtas_aabb_exp_t*) pBounds, pRtasBufferSizeBytes);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationCreateExtImpl(ze_driver_handle_t hDriver, ze_rtas_parallel_operation_ext_handle_t* phParallelOperation) {
+    return zeRTASParallelOperationCreateImpl(EXT_API, hDriver, (ze_rtas_parallel_operation_exp_handle_t*) phParallelOperation);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationDestroyExtImpl( ze_rtas_parallel_operation_ext_handle_t hParallelOperation ) {
+    return zeRTASParallelOperationDestroyImpl( EXT_API, (ze_rtas_parallel_operation_exp_handle_t) hParallelOperation );
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationGetPropertiesExtImpl( ze_rtas_parallel_operation_ext_handle_t hParallelOperation, ze_rtas_parallel_operation_ext_properties_t* pProperties ) {
+    return zeRTASParallelOperationGetPropertiesImpl( EXT_API, (ze_rtas_parallel_operation_exp_handle_t) hParallelOperation, (ze_rtas_parallel_operation_exp_properties_t*) pProperties );
+  }
+  
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationJoinExtImpl( ze_rtas_parallel_operation_ext_handle_t hParallelOperation) {
+    return zeRTASParallelOperationJoinImpl( EXT_API, (ze_rtas_parallel_operation_exp_handle_t) hParallelOperation);
+  }
+
+  /* entry points for EXP API */
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderCreateExpImpl(ze_driver_handle_t hDriver, const ze_rtas_builder_exp_desc_t *pDescriptor, ze_rtas_builder_exp_handle_t *phBuilder) {
+    return zeRTASBuilderCreateImpl(EXP_API, hDriver, pDescriptor, phBuilder);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderDestroyExpImpl(ze_rtas_builder_exp_handle_t hBuilder) {
+    return zeRTASBuilderDestroyImpl(EXP_API, hBuilder);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeDriverRTASFormatCompatibilityCheckExpImpl( ze_driver_handle_t hDriver, const ze_rtas_format_exp_t accelFormat, const ze_rtas_format_exp_t otherAccelFormat ) {
+    return zeDriverRTASFormatCompatibilityCheckImpl( EXP_API, hDriver, accelFormat, otherAccelFormat );
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderGetBuildPropertiesExpImpl(ze_rtas_builder_exp_handle_t hBuilder, const ze_rtas_builder_build_op_exp_desc_t* args, ze_rtas_builder_exp_properties_t* pProp) {
+    return zeRTASBuilderGetBuildPropertiesImpl(EXP_API, hBuilder, args, pProp);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASBuilderBuildExpImpl(ze_rtas_builder_exp_handle_t hBuilder,
+                                                                     const ze_rtas_builder_build_op_exp_desc_t* args,
+                                                                     void *pScratchBuffer, size_t scratchBufferSizeBytes,
+                                                                     void *pRtasBuffer, size_t rtasBufferSizeBytes,
+                                                                     ze_rtas_parallel_operation_exp_handle_t hParallelOperation,
+                                                                     void *pBuildUserPtr, ze_rtas_aabb_exp_t *pBounds, size_t *pRtasBufferSizeBytes)
+  {
+    return zeRTASBuilderBuildImpl(EXP_API, hBuilder,
+                                     args,
+                                     pScratchBuffer, scratchBufferSizeBytes,
+                                     pRtasBuffer, rtasBufferSizeBytes,
+                                     hParallelOperation,
+                                     pBuildUserPtr, pBounds, pRtasBufferSizeBytes);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationCreateExpImpl(ze_driver_handle_t hDriver, ze_rtas_parallel_operation_exp_handle_t* phParallelOperation) {
+    return zeRTASParallelOperationCreateImpl(EXP_API, hDriver, phParallelOperation);
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationDestroyExpImpl( ze_rtas_parallel_operation_exp_handle_t hParallelOperation ) {
+    return zeRTASParallelOperationDestroyImpl( EXP_API, hParallelOperation );
+  }
+
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationGetPropertiesExpImpl( ze_rtas_parallel_operation_exp_handle_t hParallelOperation, ze_rtas_parallel_operation_exp_properties_t* pProperties ) {
+    return zeRTASParallelOperationGetPropertiesImpl( EXP_API, hParallelOperation, pProperties );
+  }
+  
+  RTHWIF_API_EXPORT ze_result_t ZE_APICALL zeRTASParallelOperationJoinExpImpl( ze_rtas_parallel_operation_exp_handle_t hParallelOperation) {
+    return zeRTASParallelOperationJoinImpl( EXP_API, hParallelOperation);
   }
 }
