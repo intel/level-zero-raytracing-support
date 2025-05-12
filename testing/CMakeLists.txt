@@ -176,7 +176,8 @@ ENDIF()
 INIT_BAT_TEST(${BAT_TEST_FILE_EXP})
 INIT_SHELL_TEST(${SHELL_TEST_FILE_EXP})
 
-MY_ADD_TEST(NAME rthwif_cornell_box COMMAND embree_rthwif_cornell_box ${RTAS_BUILDER_MODE} --compare cornell_box_reference.tga)
+MY_ADD_TEST(NAME rthwif_cornell_box          COMMAND embree_rthwif_cornell_box ${RTAS_BUILDER_MODE}            --compare cornell_box_reference.tga)
+MY_ADD_TEST(NAME rthwif_cornell_box_instance COMMAND embree_rthwif_cornell_box ${RTAS_BUILDER_MODE} --instance --compare cornell_box_reference.tga)
 
 MY_ADD_TEST(NAME rthwif_test_builder_triangles_expected      COMMAND embree_rthwif_test ${RTAS_BUILDER_MODE} --build_test_triangles   --build_mode_expected)
 MY_ADD_TEST(NAME rthwif_test_builder_procedurals_expected    COMMAND embree_rthwif_test ${RTAS_BUILDER_MODE} --build_test_procedurals --build_mode_expected)
@@ -216,7 +217,8 @@ FINALIZE_SHELL_TEST(${SHELL_TEST_FILE_EXP})
 INIT_BAT_TEST(${BAT_TEST_FILE_EXT})
 INIT_SHELL_TEST(${SHELL_TEST_FILE_EXT})
 
-MY_ADD_TEST_EXT(NAME rthwif_cornell_box_ext COMMAND embree_rthwif_cornell_box_ext ${RTAS_BUILDER_MODE} --compare cornell_box_reference.tga)
+MY_ADD_TEST_EXT(NAME rthwif_cornell_box_ext          COMMAND embree_rthwif_cornell_box_ext ${RTAS_BUILDER_MODE}            --compare cornell_box_reference.tga)
+MY_ADD_TEST_EXT(NAME rthwif_cornell_box_instance_ext COMMAND embree_rthwif_cornell_box_ext ${RTAS_BUILDER_MODE} --instance --compare cornell_box_reference.tga)
 
 MY_ADD_TEST_EXT(NAME rthwif_test_builder_triangles_expected_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_triangles   --build_mode_expected)
 MY_ADD_TEST_EXT(NAME rthwif_test_builder_procedurals_expected_ext    COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_procedurals --build_mode_expected)

@@ -19,6 +19,8 @@ void* dispatchGlobalsPtr = nullptr;
 static uint32_t global_width = 512;
 static uint32_t global_height = 512;
 
+static bool use_instance = false;
+
 void exception_handler(sycl::exception_list exceptions)
 {
   for (std::exception_ptr const& e : exceptions) {
@@ -302,7 +304,7 @@ ze_rtas_float3_ext_t vertices[] = {
 };
 
 /* builds acceleration structure */
-void* build_rtas(sycl::device device, sycl::context context)
+void* build_rtas(sycl::device device, sycl::context context, std::vector<ze_rtas_builder_geometry_info_ext_t*>& descs)
 {
   /* get L0 handles */
   ze_driver_handle_t hDriver = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device.get_platform());
@@ -315,26 +317,6 @@ void* build_rtas(sycl::device device, sycl::context context)
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("ze_rtas_builder creation failed");
     
-  /* create geometry descriptor for single triangle mesh */
-  ze_rtas_builder_triangles_geometry_info_ext_t mesh = {};
-  mesh.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_TRIANGLES;
-  mesh.geometryFlags = 0;
-  mesh.geometryMask = 0xFF;
-  
-  mesh.triangleFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_TRIANGLE_INDICES_UINT32;
-  mesh.triangleCount = sizeof(indices)/sizeof(ze_rtas_triangle_indices_uint32_ext_t);
-  mesh.triangleStride = sizeof(ze_rtas_triangle_indices_uint32_ext_t);
-  mesh.pTriangleBuffer = indices;
-
-  mesh.vertexFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_FLOAT3;
-  mesh.vertexCount = sizeof(vertices)/sizeof(ze_rtas_float3_ext_t);
-  mesh.vertexStride = sizeof(ze_rtas_float3_ext_t);
-  mesh.pVertexBuffer = vertices;
-
-  /* fill geometry descriptor array with pointer to single geometry descriptor */
-  std::vector<ze_rtas_builder_geometry_info_ext_t*> descs;
-  descs.push_back((ze_rtas_builder_geometry_info_ext_t*)&mesh);
-  
   /* get acceleration structure format for this device */
   ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
   ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
@@ -420,6 +402,79 @@ void* build_rtas(sycl::device device, sycl::context context)
   return accel;
 }
 
+/* builds bottom level acceleration structure */
+void* build_blas(sycl::device device, sycl::context context)
+{
+  /* create geometry descriptor for single triangle mesh */
+  ze_rtas_builder_triangles_geometry_info_ext_t mesh = {};
+  mesh.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_TRIANGLES;
+  mesh.geometryFlags = 0;
+  mesh.geometryMask = 0xFF;
+  
+  mesh.triangleFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_TRIANGLE_INDICES_UINT32;
+  mesh.triangleCount = sizeof(indices)/sizeof(ze_rtas_triangle_indices_uint32_ext_t);
+  mesh.triangleStride = sizeof(ze_rtas_triangle_indices_uint32_ext_t);
+  mesh.pTriangleBuffer = indices;
+
+  mesh.vertexFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_FLOAT3;
+  mesh.vertexCount = sizeof(vertices)/sizeof(ze_rtas_float3_ext_t);
+  mesh.vertexStride = sizeof(ze_rtas_float3_ext_t);
+  mesh.pVertexBuffer = vertices;
+
+  /* fill geometry descriptor array with pointer to single geometry descriptor */
+  std::vector<ze_rtas_builder_geometry_info_ext_t*> descs;
+  descs.push_back((ze_rtas_builder_geometry_info_ext_t*)&mesh);
+
+  /* build RTAS from descriptors */
+  return build_rtas(device,context,descs);
+}
+
+/* builds top level acceleration structure */
+void* build_tlas(sycl::device device, sycl::context context, void* blas)
+{
+  /* create identity transform */
+  ze_rtas_transform_float3x4_aligned_column_major_ext_t xfmdata;
+  xfmdata.vx_x = 1.0f;
+  xfmdata.vx_y = 0.0f;
+  xfmdata.vx_z = 0.0f;
+  xfmdata.pad0 = 0.0f;
+  xfmdata.vy_x = 0.0f;
+  xfmdata.vy_y = 1.0f;
+  xfmdata.vy_z = 0.0f;
+  xfmdata.pad1 = 0.0f;
+  xfmdata.vz_x = 0.0f;
+  xfmdata.vz_y = 0.0f;
+  xfmdata.vz_z = 1.0f;
+  xfmdata.pad2 = 0.0f;
+  xfmdata.p_x  = 0.0f;
+  xfmdata.p_y  = 0.0f;
+  xfmdata.p_z  = 0.0f;
+  xfmdata.pad3  = 0.0f;
+
+  /* conservative bounds for model */
+  ze_rtas_aabb_ext_t bounds = {
+    { 0,0,0 }, { 1000, 1000, 1000 }
+  };
+  
+  /* create geometry descriptor for instance */
+  ze_rtas_builder_instance_geometry_info_ext_t inst = {};
+  inst.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_INSTANCE;
+  inst.instanceFlags = 0;
+  inst.geometryMask = 0xFF;
+  inst.instanceUserID = 0;
+  inst.transformFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_FLOAT3X4_ALIGNED_COLUMN_MAJOR;
+  inst.pTransform = (float*)&xfmdata;
+  inst.pBounds = &bounds;
+  inst.pAccelerationStructure = blas;
+
+  /* fill geometry descriptor array with pointer to single geometry descriptor */
+  std::vector<ze_rtas_builder_geometry_info_ext_t*> descs;
+  descs.push_back((ze_rtas_builder_geometry_info_ext_t*)&inst);
+
+  /* build RTAS from descriptors */
+  return build_rtas(device,context,descs);
+}
+
 /* render using simple UV shading */
 void render(unsigned int x, unsigned int y, void* bvh, unsigned int* pixels, unsigned int width, unsigned int height)
 {
@@ -483,6 +538,9 @@ int main(int argc, char* argv[]) try
     }
     else if (strcmp(argv[i], "--level-zero-rtas-builder") == 0) {
       rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::LEVEL_ZERO;
+    }
+    else if (strcmp(argv[i], "--instance") == 0) {
+      use_instance = true;
     }
     else if (strcmp(argv[i], "--size") == 0) {
       if (++i >= argc) throw std::runtime_error("--size: width expected");
@@ -579,8 +637,12 @@ int main(int argc, char* argv[]) try
   dispatchGlobalsPtr = allocDispatchGlobals(device,context);
 #endif
 
-  /* build acceleration structure */
-  void* bvh = build_rtas(device,context);
+  /* build bottom level acceleration structure */
+  void* bvh = build_blas(device,context);
+
+  /* build toplevel acceleration structure */
+  if (use_instance)
+    bvh = build_tlas(device,context,bvh);
 
   /* creates framebuffer */
   const uint32_t width = global_width;
