@@ -24,7 +24,7 @@
 #include <mutex>
 #include <string.h>
 
-ZeWrapper::RTAS_BUILD_MODE ZeWrapper::rtas_builder = ZeWrapper::AUTO;
+ZeWrapper::RTAS_BUILD_MODE ZeWrapper::rtas_builder = ZeWrapper::INVALID;
 
 static std::mutex zeWrapperMutex;
 static void* handle = nullptr;
@@ -123,13 +123,13 @@ ze_result_t selectLevelZeroRTASBuilder(ze_driver_handle_t hDriver)
   return ZE_RESULT_SUCCESS;
 }
 
-void selectInternalRTASBuilder()
+ze_result_t selectInternalRTASBuilder()
 {
 #if defined(ZE_RAYTRACING_DISABLE_INTERNAL_BUILDER)
   throw std::runtime_error("internal builder disabled at compile time");
 #else
   if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
-    return;
+    return ZE_RESULT_SUCCESS;
   
   zeRTASBuilderCreateExpInternal = &zeRTASBuilderCreateExpImpl;
   zeRTASBuilderDestroyExpInternal = &zeRTASBuilderDestroyExpImpl;
@@ -144,6 +144,7 @@ void selectInternalRTASBuilder()
   
   ZeWrapper::rtas_builder = ZeWrapper::INTERNAL;
 #endif
+  return ZE_RESULT_SUCCESS;
 }
 
 ze_result_t ZeWrapper::init()
@@ -172,31 +173,13 @@ ze_result_t ZeWrapper::initRTASBuilder(ze_driver_handle_t hDriver, RTAS_BUILD_MO
   std::lock_guard<std::mutex> lock(zeWrapperMutex);
 
   /* only select rtas builder once! */
-  if (rtas_builder != RTAS_BUILD_MODE::AUTO)
-  {
-    if (rtas_build_mode == RTAS_BUILD_MODE::AUTO)
-      return ZE_RESULT_SUCCESS;
-
-    if (rtas_builder == rtas_build_mode)
-      return ZE_RESULT_SUCCESS;
-
-    return ZE_RESULT_ERROR_UNKNOWN;
-  }
+  if (rtas_builder == rtas_build_mode)
+    return ZE_RESULT_SUCCESS;
 
   try {
     
-    if (rtas_build_mode == RTAS_BUILD_MODE::AUTO)
-    {
-      try {
-        if (selectLevelZeroRTASBuilder(hDriver) != ZE_RESULT_SUCCESS)
-          selectInternalRTASBuilder();
-      } catch (std::exception& e) {
-        selectInternalRTASBuilder();
-      }
-    }
-    
-    else if (rtas_build_mode == RTAS_BUILD_MODE::INTERNAL)
-      selectInternalRTASBuilder();
+    if (rtas_build_mode == RTAS_BUILD_MODE::INTERNAL)
+      return selectInternalRTASBuilder();
     
     else if (rtas_build_mode == RTAS_BUILD_MODE::LEVEL_ZERO)
       return selectLevelZeroRTASBuilder(hDriver);
@@ -207,7 +190,7 @@ ze_result_t ZeWrapper::initRTASBuilder(ze_driver_handle_t hDriver, RTAS_BUILD_MO
   catch (std::exception& e) {
     return ZE_RESULT_ERROR_UNKNOWN;
   }
-  return ZE_RESULT_SUCCESS;
+  return ZE_RESULT_ERROR_UNKNOWN;
 }
 
 ze_result_t ZeWrapper::zeMemFree(ze_context_handle_t context, void* ptr)

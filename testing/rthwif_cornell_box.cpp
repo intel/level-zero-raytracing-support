@@ -467,12 +467,7 @@ void render(unsigned int x, unsigned int y, void* bvh, unsigned int* pixels, uns
 
 int main(int argc, char* argv[]) try
 {
-  /* use can specify reference image to compare against */
-#if defined(EMBREE_SYCL_L0_RTAS_BUILDER)
   ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::LEVEL_ZERO;
-#else
-  ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::INTERNAL;
-#endif
   
   char* reference_img = NULL;
   for (int i=1; i<argc; i++)
@@ -486,9 +481,6 @@ int main(int argc, char* argv[]) try
     }
     else if (strcmp(argv[i], "--level-zero-rtas-builder") == 0) {
       rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::LEVEL_ZERO;
-    }
-    else if (strcmp(argv[i], "--default-rtas-builder") == 0) {
-      rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::AUTO;
     }
     else if (strcmp(argv[i], "--size") == 0) {
       if (++i >= argc) throw std::runtime_error("--size: width expected");
@@ -504,6 +496,11 @@ int main(int argc, char* argv[]) try
       throw std::runtime_error("unknown command line argument");
     }
   }
+
+  if (rtas_build_mode == ZeWrapper::INTERNAL)
+    std::cout << "using internal RTAS builder" << std::endl;
+  else
+    std::cout << "using Level Zero RTAS builder" << std::endl;
 
   /* create SYCL objects */
   sycl::device device = sycl::device(sycl::gpu_selector_v);
@@ -531,46 +528,36 @@ int main(int argc, char* argv[]) try
   if (!rayQuerySupported)
     throw std::runtime_error("Device does not support ray tracing");
 
-  /* enable RTAS extension only when enabled */
-  if (rtas_build_mode == ZeWrapper::RTAS_BUILD_MODE::AUTO)
+  /* check if RTAS extension available */
+  uint32_t count = 0;
+  std::vector<ze_driver_extension_properties_t> extensions;
+  result = ZeWrapper::zeDriverGetExtensionProperties(hDriver,&count,extensions.data());
+  if (result != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("zeDriverGetExtensionProperties failed");
+  
+  extensions.resize(count);
+  result = ZeWrapper::zeDriverGetExtensionProperties(hDriver,&count,extensions.data());
+  if (result != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("zeDriverGetExtensionProperties failed");
+  
+  bool ze_rtas_builder = false;
+  for (uint32_t i=0; i<extensions.size(); i++)
   {
-    uint32_t count = 0;
-    std::vector<ze_driver_extension_properties_t> extensions;
-    result = ZeWrapper::zeDriverGetExtensionProperties(hDriver,&count,extensions.data());
-    if (result != ZE_RESULT_SUCCESS)
-      throw std::runtime_error("zeDriverGetExtensionProperties failed");
-    
-    extensions.resize(count);
-    result = ZeWrapper::zeDriverGetExtensionProperties(hDriver,&count,extensions.data());
-    if (result != ZE_RESULT_SUCCESS)
-      throw std::runtime_error("zeDriverGetExtensionProperties failed");
-    
-    bool ze_rtas_builder = false;
-    for (uint32_t i=0; i<extensions.size(); i++)
-    {
-      if (strncmp("ZE_experimental_rtas_builder",extensions[i].name,sizeof(extensions[i].name)) == 0)
-        ze_rtas_builder = true;
-    }
-
-    if (ze_rtas_builder)
-      result = ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::AUTO);
-    else
-      result = ZeWrapper::initRTASBuilder(hDriver,ZeWrapper::RTAS_BUILD_MODE::INTERNAL);
+    if (strncmp("ZE_experimental_rtas_builder",extensions[i].name,sizeof(extensions[i].name)) == 0)
+      ze_rtas_builder = true;
   }
-  else
-    result = ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
+  if (!ze_rtas_builder)
+    throw std::runtime_error("ZE_experimental_rtas_builder extension not available");
 
+  /* initialize RTAS builder extension in ZeWrapper */
+  result = ZeWrapper::initRTASBuilder(hDriver,rtas_build_mode);
+  
   if (result == ZE_RESULT_ERROR_DEPENDENCY_UNAVAILABLE)
     throw std::runtime_error("cannot load ZE_experimental_rtas_builder extension");
   
   if (result != ZE_RESULT_SUCCESS)
     throw std::runtime_error("cannot initialize ZE_experimental_rtas_builder extension");
   
-  if (ZeWrapper::rtas_builder == ZeWrapper::INTERNAL)
-    std::cout << "using internal RTAS builder" << std::endl;
-  else
-    std::cout << "using Level Zero RTAS builder" << std::endl;
-
   /* get acceleration structure format for this device */
   ze_rtas_device_exp_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXP_PROPERTIES };
   ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
