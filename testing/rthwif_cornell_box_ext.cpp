@@ -13,6 +13,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <malloc.h>
 
 void* dispatchGlobalsPtr = nullptr;
 
@@ -20,6 +21,23 @@ static uint32_t global_width = 512;
 static uint32_t global_height = 512;
 
 static bool use_instance = false;
+static bool use_device_memory = false;
+
+#if defined(_WIN32)
+  void* my_aligned_malloc(size_t size, size_t align) {
+    return _aligned_malloc(size,align);
+  }
+  void my_aligned_free(void* ptr) {
+    _aligned_free(ptr);
+  }
+#else
+  void* my_aligned_malloc(size_t size, size_t align) {
+    return aligned_alloc(align,size);
+  }
+  void my_aligned_free(void* ptr) {
+    free(ptr);
+  }
+#endif
 
 void exception_handler(sycl::exception_list exceptions)
 {
@@ -105,10 +123,9 @@ size_t compareTga(const std::string& fileNameA, const std::string& fileNameB)
   return diff;
 }
 
-/* Properly allocates an acceleration structure buffer using ze_raytracing_mem_alloc_ext_desc_t property. */
-void* alloc_accel_buffer(size_t bytes, sycl::device device, sycl::context context)
+/* get RTAS buffer alignment requirement */
+size_t accel_buffer_alignment(sycl::device device)
 {
-  ze_context_handle_t hContext = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(context);
   ze_device_handle_t  hDevice  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
   
   ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
@@ -116,7 +133,16 @@ void* alloc_accel_buffer(size_t bytes, sycl::device device, sycl::context contex
   ze_result_t err = ZeWrapper::zeDeviceGetProperties(hDevice, &devProp );
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("zeDeviceGetProperties failed");
-  
+
+  return rtasProp.rtasBufferAlignment;
+}
+
+/* Properly allocates a USM acceleration structure buffer using ze_raytracing_mem_alloc_ext_desc_t property. */
+void* alloc_shared_accel_buffer(size_t bytes, sycl::device device, sycl::context context)
+{
+  ze_context_handle_t hContext = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(context);
+  ze_device_handle_t  hDevice  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
+
   ze_raytracing_mem_alloc_ext_desc_t rt_desc;
   rt_desc.stype = ZE_STRUCTURE_TYPE_RAYTRACING_MEM_ALLOC_EXT_DESC;
   rt_desc.pNext = nullptr;
@@ -132,9 +158,38 @@ void* alloc_accel_buffer(size_t bytes, sycl::device device, sycl::context contex
   host_desc.stype = ZE_STRUCTURE_TYPE_HOST_MEM_ALLOC_DESC;
   host_desc.pNext = nullptr;
   host_desc.flags = ZE_HOST_MEM_ALLOC_FLAG_BIAS_CACHED;
-  
+
+  const size_t rtasAlignment = accel_buffer_alignment(device);
+ 
   void* ptr = nullptr;
-  ze_result_t result = ZeWrapper::zeMemAllocShared(hContext,&device_desc,&host_desc,bytes,rtasProp.rtasBufferAlignment,hDevice,&ptr);
+  ze_result_t result = ZeWrapper::zeMemAllocShared(hContext,&device_desc,&host_desc,bytes,rtasAlignment,hDevice,&ptr);
+  if (result != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("acceleration buffer allocation failed");
+
+  return ptr;
+}
+
+/* Properly allocates a device memory acceleration structure buffer using ze_raytracing_mem_alloc_ext_desc_t property. */
+void* alloc_device_accel_buffer(size_t bytes, sycl::device device, sycl::context context)
+{
+  ze_context_handle_t hContext = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(context);
+  ze_device_handle_t  hDevice  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
+  
+  ze_raytracing_mem_alloc_ext_desc_t rt_desc;
+  rt_desc.stype = ZE_STRUCTURE_TYPE_RAYTRACING_MEM_ALLOC_EXT_DESC;
+  rt_desc.pNext = nullptr;
+  rt_desc.flags = 0;
+    
+  ze_device_mem_alloc_desc_t device_desc;
+  device_desc.stype = ZE_STRUCTURE_TYPE_DEVICE_MEM_ALLOC_DESC;
+  device_desc.pNext = &rt_desc;
+  device_desc.flags = ZE_DEVICE_MEM_ALLOC_FLAG_BIAS_CACHED;
+  device_desc.ordinal = 0;
+
+  const size_t rtasAlignment = accel_buffer_alignment(device);
+ 
+  void* ptr = nullptr;
+  ze_result_t result = ZeWrapper::zeMemAllocDevice(hContext,&device_desc,bytes,rtasAlignment,hDevice,&ptr);
   if (result != ZE_RESULT_SUCCESS)
     throw std::runtime_error("acceleration buffer allocation failed");
 
@@ -177,7 +232,7 @@ void* allocDispatchGlobals(sycl::device device, sycl::context context)
   size_t num_rtstacks = 1<<17; // this is sufficiently large also for PVC
   size_t dispatchGlobalSize = 128+num_rtstacks*rtstack_bytes;
   
-  void* dispatchGlobalsPtr = alloc_accel_buffer(dispatchGlobalSize,device,context);
+  void* dispatchGlobalsPtr = alloc_shared_accel_buffer(dispatchGlobalSize,device,context);
   memset(dispatchGlobalsPtr, 0, dispatchGlobalSize);
 
   DispatchGlobals* dg = (DispatchGlobals*) dispatchGlobalsPtr;
@@ -304,11 +359,13 @@ ze_rtas_float3_ext_t vertices[] = {
 };
 
 /* builds acceleration structure */
-void* build_rtas(sycl::device device, sycl::context context, std::vector<ze_rtas_builder_geometry_info_ext_t*>& descs)
+void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, std::vector<ze_rtas_builder_geometry_info_ext_t*>& descs)
 {
   /* get L0 handles */
   ze_driver_handle_t hDriver = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device.get_platform());
   ze_device_handle_t hDevice = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
+  ze_context_handle_t hContext = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(context);
+  auto hQueue = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(queue);
     
   /* create rtas builder object */
   ze_rtas_builder_ext_desc_t builderDesc = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXT_DESC };
@@ -361,13 +418,23 @@ void* build_rtas(sycl::device device, sycl::context context, std::vector<ze_rtas
 
   /* allocate acceleration structure buffer */
   size_t accelBytes = buildProps.rtasBufferSizeBytesMaxRequired;
-  void* accel = alloc_accel_buffer(accelBytes,device,context);
-  memset(accel,0,accelBytes); // optional
+  void* accelHost = nullptr;
+  void* accelDevice = nullptr;
+  if (use_device_memory) {
+    const size_t rtasAlignment = accel_buffer_alignment(device);
+    accelHost = my_aligned_malloc(accelBytes,rtasAlignment);
+    accelDevice = alloc_device_accel_buffer(accelBytes,device,context);
+  }
+  else {
+    accelHost = alloc_shared_accel_buffer(accelBytes,device,context);
+    accelDevice = accelHost;
+  }
+  memset(accelHost,0,accelBytes); // optional
   
   /* build acceleration strucuture multi threaded */
   err = ZeWrapper::zeRTASBuilderBuildExt(hBuilder,&buildOp,
                                   scratchBuffer.data(),scratchBuffer.size(),
-                                  accel, accelBytes,
+                                  accelHost, accelBytes,
                                   hParallelOperation,
                                   nullptr, &bounds, &accelBufferBytesOut);
   
@@ -399,11 +466,62 @@ void* build_rtas(sycl::device device, sycl::context context, std::vector<ze_rtas
   if (err != ZE_RESULT_SUCCESS)
     throw std::runtime_error("zeRTASBuilderDestroyExt failed");
   
-  return accel;
+  /* copy host buffer to device memory */
+  if (use_device_memory)
+  {
+    sycl::event event = sycl::event();
+    ze_event_handle_t hEvent = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(event);
+
+    /* command list codepath */
+    if (std::holds_alternative<ze_command_list_handle_t>(hQueue))
+    {
+      ze_command_list_handle_t hCommandList = std::get<ze_command_list_handle_t>(hQueue);
+      
+      err = ZeWrapper::zeRTASBuilderCommandListAppendCopyExt(hCommandList, accelDevice, accelHost, accelBytes, hEvent, 0, nullptr);
+      if (err != ZE_RESULT_SUCCESS)
+        throw std::runtime_error("zeRTASBuilderCommandListAppendCopyExt failed");
+
+      queue.wait();
+    }
+
+    /* command queue codepath */
+    else
+    {
+      ze_command_queue_handle_t hCommandQueue = std::get<ze_command_queue_handle_t>(hQueue);
+      
+      ze_command_list_handle_t hCommandList = nullptr;
+      ze_command_list_desc_t commandListDesc = { ZE_STRUCTURE_TYPE_COMMAND_LIST_DESC, nullptr, 0, ZE_COMMAND_QUEUE_FLAG_IN_ORDER };
+      err = ZeWrapper::zeCommandListCreate(hContext,hDevice,&commandListDesc,&hCommandList);
+      if (err != ZE_RESULT_SUCCESS)
+        throw std::runtime_error("zeCommandListCreate failed");
+      
+      err = ZeWrapper::zeRTASBuilderCommandListAppendCopyExt(hCommandList, accelDevice, accelHost, accelBytes, hEvent, 0, nullptr);
+      if (err != ZE_RESULT_SUCCESS)
+        throw std::runtime_error("zeRTASBuilderCommandListAppendCopyExt failed");
+      
+      err = ZeWrapper::zeCommandListClose(hCommandList);
+      if (err != ZE_RESULT_SUCCESS)
+        throw std::runtime_error("zeCommandListClose failed");
+      
+      err = ZeWrapper::zeCommandQueueExecuteCommandLists(hCommandQueue, 1, &hCommandList, nullptr);
+      if (err != ZE_RESULT_SUCCESS)
+        throw std::runtime_error("zeCommandQueueExecuteCommandLists failed");
+      
+      queue.wait();
+      
+      err = ZeWrapper::zeCommandListDestroy(hCommandList);
+      if (err != ZE_RESULT_SUCCESS)
+        throw std::runtime_error("zeCommandListDestroy failed");
+    }
+    
+    my_aligned_free(accelHost);
+  }
+  
+  return accelDevice;
 }
 
 /* builds bottom level acceleration structure */
-void* build_blas(sycl::device device, sycl::context context)
+void* build_blas(sycl::device device, sycl::context context, sycl::queue queue)
 {
   /* create geometry descriptor for single triangle mesh */
   ze_rtas_builder_triangles_geometry_info_ext_t mesh = {};
@@ -426,11 +544,11 @@ void* build_blas(sycl::device device, sycl::context context)
   descs.push_back((ze_rtas_builder_geometry_info_ext_t*)&mesh);
 
   /* build RTAS from descriptors */
-  return build_rtas(device,context,descs);
+  return build_rtas(device,context,queue,descs);
 }
 
 /* builds top level acceleration structure */
-void* build_tlas(sycl::device device, sycl::context context, void* blas)
+void* build_tlas(sycl::device device, sycl::context context, sycl::queue queue, void* blas)
 {
   /* create identity transform */
   ze_rtas_transform_float3x4_aligned_column_major_ext_t xfmdata;
@@ -472,7 +590,7 @@ void* build_tlas(sycl::device device, sycl::context context, void* blas)
   descs.push_back((ze_rtas_builder_geometry_info_ext_t*)&inst);
 
   /* build RTAS from descriptors */
-  return build_rtas(device,context,descs);
+  return build_rtas(device,context,queue,descs);
 }
 
 /* render using simple UV shading */
@@ -541,6 +659,9 @@ int main(int argc, char* argv[]) try
     }
     else if (strcmp(argv[i], "--instance") == 0) {
       use_instance = true;
+    }
+    else if (strcmp(argv[i], "--device-memory") == 0) {
+      use_device_memory = true;
     }
     else if (strcmp(argv[i], "--size") == 0) {
       if (++i >= argc) throw std::runtime_error("--size: width expected");
@@ -638,11 +759,11 @@ int main(int argc, char* argv[]) try
 #endif
 
   /* build bottom level acceleration structure */
-  void* bvh = build_blas(device,context);
+  void* bvh = build_blas(device,context,queue);
 
   /* build toplevel acceleration structure */
   if (use_instance)
-    bvh = build_tlas(device,context,bvh);
+    bvh = build_tlas(device,context,queue,bvh);
 
   /* creates framebuffer */
   const uint32_t width = global_width;

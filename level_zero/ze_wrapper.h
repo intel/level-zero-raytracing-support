@@ -42,10 +42,15 @@ struct ZeWrapper
   
   static ze_result_t zeMemFree(ze_context_handle_t, void*);
   static ze_result_t zeMemAllocShared(ze_context_handle_t, const ze_device_mem_alloc_desc_t*, const ze_host_mem_alloc_desc_t*, size_t, size_t, ze_device_handle_t, void**);
+  static ze_result_t zeMemAllocDevice(ze_context_handle_t, const ze_device_mem_alloc_desc_t*, size_t, size_t, ze_device_handle_t, void**);
   static ze_result_t zeDriverGetExtensionProperties(ze_driver_handle_t, uint32_t*, ze_driver_extension_properties_t*);
   static ze_result_t zeDeviceGetProperties(ze_device_handle_t, ze_device_properties_t*);
   static ze_result_t zeDeviceGetModuleProperties(ze_device_handle_t, ze_device_module_properties_t*);
-
+  static ze_result_t zeCommandQueueExecuteCommandLists(ze_command_queue_handle_t hCommandQueue, uint32_t numCommandLists, ze_command_list_handle_t* phCommandLists, ze_fence_handle_t hFence);
+  static ze_result_t zeCommandListCreate(ze_context_handle_t hContext, ze_device_handle_t hDevice, const ze_command_list_desc_t* desc, ze_command_list_handle_t* phCommandList);
+  static ze_result_t zeCommandListClose(ze_command_list_handle_t hCommandList);
+  static ze_result_t zeCommandListDestroy(ze_command_list_handle_t hCommandList);
+ 
   /* EXP version of API */
   static ze_result_t zeRTASBuilderCreateExp(ze_driver_handle_t hDriver, const ze_rtas_builder_exp_desc_t *pDescriptor, ze_rtas_builder_exp_handle_t *phBuilder);
   static ze_result_t zeRTASBuilderDestroyExp(ze_rtas_builder_exp_handle_t hBuilder);

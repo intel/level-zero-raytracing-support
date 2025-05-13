@@ -31,10 +31,15 @@ static void* handle = nullptr;
 
 static decltype(zeMemFree)* zeMemFreeInternal = nullptr;
 static decltype(zeMemAllocShared)* zeMemAllocSharedInternal = nullptr;
+static decltype(zeMemAllocDevice)* zeMemAllocDeviceInternal = nullptr;
 static decltype(zeDriverGetExtensionProperties)* zeDriverGetExtensionPropertiesInternal = nullptr;
 static decltype(zeDeviceGetProperties)* zeDeviceGetPropertiesInternal = nullptr;
 static decltype(zeDeviceGetModuleProperties)* zeDeviceGetModulePropertiesInternal = nullptr;
 static decltype(zeCommandListAppendMemoryCopy)* zeCommandListAppendMemoryCopyInternal = nullptr;
+static decltype(zeCommandQueueExecuteCommandLists)* zeCommandQueueExecuteCommandListsInternal = nullptr;
+static decltype(zeCommandListCreate)* zeCommandListCreateInternal = nullptr;
+static decltype(zeCommandListClose)* zeCommandListCloseInternal = nullptr;
+static decltype(zeCommandListDestroy)* zeCommandListDestroyInternal = nullptr;
 
 /* EXP version of API */
 static decltype(zeRTASBuilderCreateExp)* zeRTASBuilderCreateExpInternal = nullptr;
@@ -229,10 +234,15 @@ ze_result_t ZeWrapper::init()
     
     zeMemFreeInternal = find_symbol<decltype(zeMemFree)*>(handle, "zeMemFree");
     zeMemAllocSharedInternal = find_symbol<decltype(zeMemAllocShared)*>(handle, "zeMemAllocShared");
+    zeMemAllocDeviceInternal = find_symbol<decltype(zeMemAllocDevice)*>(handle, "zeMemAllocDevice");
     zeDriverGetExtensionPropertiesInternal = find_symbol<decltype(zeDriverGetExtensionProperties)*>(handle, "zeDriverGetExtensionProperties");
     zeDeviceGetPropertiesInternal = find_symbol<decltype(zeDeviceGetProperties)*>(handle, "zeDeviceGetProperties");
     zeDeviceGetModulePropertiesInternal = find_symbol<decltype(zeDeviceGetModuleProperties)*>(handle, "zeDeviceGetModuleProperties");
     zeCommandListAppendMemoryCopyInternal = find_symbol<decltype(zeCommandListAppendMemoryCopy)*>(handle, "zeCommandListAppendMemoryCopy");
+    zeCommandQueueExecuteCommandListsInternal = find_symbol<decltype(zeCommandQueueExecuteCommandLists)*>(handle, "zeCommandQueueExecuteCommandLists");
+    zeCommandListCreateInternal = find_symbol<decltype(zeCommandListCreate)*>(handle, "zeCommandListCreate");
+    zeCommandListCloseInternal = find_symbol<decltype(zeCommandListClose)*>(handle, "zeCommandListClose");
+    zeCommandListDestroyInternal = find_symbol<decltype(zeCommandListDestroy)*>(handle, "zeCommandListDestroy");
   }
   catch (std::exception& e) {
     return ZE_RESULT_ERROR_UNKNOWN;
@@ -279,6 +289,14 @@ ze_result_t ZeWrapper::zeMemAllocShared(ze_context_handle_t context, const ze_de
     throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
   
   return zeMemAllocSharedInternal(context, descd, desch, s0, s1, ze_handle, ptr);
+}
+
+ze_result_t ZeWrapper::zeMemAllocDevice(ze_context_handle_t context, const ze_device_mem_alloc_desc_t* descd, size_t s0, size_t s1, ze_device_handle_t ze_handle, void** ptr)
+{
+  if (!handle || !zeMemAllocDeviceInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+  
+  return zeMemAllocDeviceInternal(context, descd, s0, s1, ze_handle, ptr);
 }
 
 ze_result_t ZeWrapper::zeDriverGetExtensionProperties(ze_driver_handle_t ze_handle, uint32_t* ptr, ze_driver_extension_properties_t* props)
@@ -524,6 +542,38 @@ ze_result_t ZeWrapper::zeRTASBuilderCommandListAppendCopyExp(ze_command_list_han
     throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
   
   return zeCommandListAppendMemoryCopyInternal(hCommandList,dstptr,srcptr,size,hSignalEvent,numWaitEvents,phWaitEvents); // EXP API does not have proper copy function
+}
+
+ze_result_t ZeWrapper::zeCommandQueueExecuteCommandLists(ze_command_queue_handle_t hCommandQueue, uint32_t numCommandLists, ze_command_list_handle_t* phCommandLists, ze_fence_handle_t hFence)
+{
+  if (!handle || !zeCommandQueueExecuteCommandListsInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+
+  return zeCommandQueueExecuteCommandListsInternal(hCommandQueue, numCommandLists, phCommandLists, hFence);
+}
+
+ze_result_t ZeWrapper::zeCommandListCreate(ze_context_handle_t hContext, ze_device_handle_t hDevice, const ze_command_list_desc_t* desc, ze_command_list_handle_t* phCommandList)
+{
+  if (!handle || !zeCommandListCreateInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+
+  return zeCommandListCreateInternal(hContext, hDevice, desc, phCommandList);
+}
+
+ze_result_t ZeWrapper::zeCommandListClose(ze_command_list_handle_t hCommandList)
+{
+  if (!handle || !zeCommandListCloseInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+
+  return zeCommandListCloseInternal(hCommandList);
+}
+
+ze_result_t ZeWrapper::zeCommandListDestroy(ze_command_list_handle_t hCommandList)
+{
+  if (!handle || !zeCommandListDestroyInternal)
+    throw std::runtime_error("ZeWrapper not initialized, call ZeWrapper::init() first.");
+
+  return zeCommandListDestroyInternal(hCommandList);
 }
 
 ze_result_t ZeWrapper::zeRTASParallelOperationCreateExp(ze_driver_handle_t hDriver, ze_rtas_parallel_operation_exp_handle_t* phParallelOperation)
