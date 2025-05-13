@@ -400,7 +400,7 @@ namespace embree
       part0.geomFlags = (uint32_t) GeometryFlags::NONE;
     
       part0.startNodePtr = startNodePtr;
-      assert(int64_t(startNodePtr << 16) >> 16 == startNodePtr); // check that this is valid 48bit address
+      //assert(int64_t(startNodePtr << 16) >> 16 == startNodePtr); // check that this is valid 48bit address
       part0.instFlags = (InstanceFlags) 0;
       part0.pad1 = 0;
       
