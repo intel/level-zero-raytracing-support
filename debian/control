@@ -21,7 +21,7 @@ Architecture: amd64
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
- libze1 (>=1.21.1)
+ level-zero (>=1.17.44) | libze1 (>=1.21.1)
 Description: Level Zero Ray Tracing Support library
  The Level Zero Ray Tracing Support library implements high performance CPU
  based construction algorithms for 3D acceleration structures that are
