@@ -53,16 +53,8 @@ namespace embree
   template<int N> struct vboold_impl { long long i[N]; }; // for double/long long
  
   /* Varying size constants */
-#if defined(__AVX512VL__) // SKX
-  const int VSIZEX = 8;  // default size
-  const int VSIZEL = 16; // large size
-#elif defined(__AVX__)
-  const int VSIZEX = 8;
-  const int VSIZEL = 8;
-#else
   const int VSIZEX = 4;
   const int VSIZEL = 4;
-#endif
 
   template<int N>
   struct vtypes {
@@ -109,28 +101,6 @@ namespace embree
   typedef vbool<4>   vbool4;
   typedef vboolf<4>  vboolf4;
   typedef vboold<4>  vboold4;
-
-  /* 8-wide shortcuts */
-  typedef vfloat<8>  vfloat8;
-  typedef vdouble<8> vdouble8;
-  typedef vreal<8>   vreal8;
-  typedef vint<8>    vint8;
-  typedef vuint<8>    vuint8;
-  typedef vllong<8>  vllong8;
-  typedef vbool<8>   vbool8;
-  typedef vboolf<8>  vboolf8;
-  typedef vboold<8>  vboold8;
-
-  /* 16-wide shortcuts */
-  typedef vfloat<16>  vfloat16;
-  typedef vdouble<16> vdouble16;
-  typedef vreal<16>   vreal16;
-  typedef vint<16>    vint16;
-  typedef vuint<16>   vuint16;
-  typedef vllong<16>  vllong16;
-  typedef vbool<16>   vbool16;
-  typedef vboolf<16>  vboolf16;
-  typedef vboold<16>  vboold16;
 
   /* Default shortcuts */
   typedef vfloat<VSIZEX>  vfloatx;

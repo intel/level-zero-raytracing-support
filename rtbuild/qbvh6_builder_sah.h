@@ -66,9 +66,9 @@ namespace embree
         }
 
       private:
-        char* ptr;                             // data buffer pointer
-        size_t end;                            // size of data buffer in bytes
-        __aligned(64) std::atomic<size_t> cur; // current pointer to allocate next data block from
+        char* ptr = nullptr;                       // data buffer pointer
+        size_t end = 0;                            // size of data buffer in bytes
+        __aligned(64) std::atomic<size_t> cur = 0; // current pointer to allocate next data block from
       };
 
       /* triangle data for leaf creation */

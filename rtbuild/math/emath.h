@@ -57,94 +57,27 @@ namespace embree
 
   __forceinline float rcp  ( const float x )
   {
-#if defined(__aarch64__)
-      // Move scalar to vector register and do rcp.
-      __m128 a;
-      a[0] = x;
-      float32x4_t reciprocal = vrecpeq_f32(a);
-      reciprocal = vmulq_f32(vrecpsq_f32(a, reciprocal), reciprocal);
-      reciprocal = vmulq_f32(vrecpsq_f32(a, reciprocal), reciprocal);
-      return reciprocal[0];
-#else
-
     const __m128 a = _mm_set_ss(x);
-
-#if defined(__AVX512VL__)
-    const __m128 r = _mm_rcp14_ss(_mm_set_ss(0.0f),a);
-#else
     const __m128 r = _mm_rcp_ss(a);
-#endif
-
-#if defined(__AVX2__)
-    return _mm_cvtss_f32(_mm_mul_ss(r,_mm_fnmadd_ss(r, a, _mm_set_ss(2.0f))));
-#else
     return _mm_cvtss_f32(_mm_mul_ss(r,_mm_sub_ss(_mm_set_ss(2.0f), _mm_mul_ss(r, a))));
-#endif
-
-#endif  //defined(__aarch64__)
   }
 
   __forceinline float signmsk ( const float x ) {
-#if defined(__aarch64__)
-      // FP and Neon shares same vector register in arm64
-      __m128 a;
-      __m128i b;
-      a[0] = x;
-      b[0] = 0x80000000;
-      a = _mm_and_ps(a, vreinterpretq_f32_s32(b));
-      return a[0];
-#else
     return _mm_cvtss_f32(_mm_and_ps(_mm_set_ss(x),_mm_castsi128_ps(_mm_set1_epi32(0x80000000))));
-#endif
   }
   __forceinline float xorf( const float x, const float y ) {
-#if defined(__aarch64__)
-      // FP and Neon shares same vector register in arm64
-      __m128 a;
-      __m128 b;
-      a[0] = x;
-      b[0] = y;
-      a = _mm_xor_ps(a, b);
-      return a[0];
-#else
     return _mm_cvtss_f32(_mm_xor_ps(_mm_set_ss(x),_mm_set_ss(y)));
-#endif
   }
   __forceinline float andf( const float x, const unsigned y ) {
-#if defined(__aarch64__)
-      // FP and Neon shares same vector register in arm64
-      __m128 a;
-      __m128i b;
-      a[0] = x;
-      b[0] = y;
-      a = _mm_and_ps(a, vreinterpretq_f32_s32(b));
-      return a[0];
-#else
     return _mm_cvtss_f32(_mm_and_ps(_mm_set_ss(x),_mm_castsi128_ps(_mm_set1_epi32(y))));
-#endif
   }
   __forceinline float rsqrt( const float x )
   {
-#if defined(__aarch64__)
-      // FP and Neon shares same vector register in arm64
-      __m128 a;
-      a[0] = x;
-      __m128 value = _mm_rsqrt_ps(a);
-      value = vmulq_f32(value, vrsqrtsq_f32(vmulq_f32(a, value), value));
-      value = vmulq_f32(value, vrsqrtsq_f32(vmulq_f32(a, value), value));
-      return value[0];
-#else
-
     const __m128 a = _mm_set_ss(x);
-#if defined(__AVX512VL__)
-    __m128 r = _mm_rsqrt14_ss(_mm_set_ss(0.0f),a);
-#else
     __m128 r = _mm_rsqrt_ss(a);
-#endif
     const __m128 c = _mm_add_ss(_mm_mul_ss(_mm_set_ss(1.5f), r),
                                 _mm_mul_ss(_mm_mul_ss(_mm_mul_ss(a, _mm_set_ss(-0.5f)), r), _mm_mul_ss(r, r)));
     return _mm_cvtss_f32(c);
-#endif
   }
 
 #if defined(__WIN32__) && defined(_MSC_VER) && (_MSC_VER <= 1700)
@@ -201,44 +134,6 @@ namespace embree
   __forceinline double floor( const double x ) { return ::floor (x); }
   __forceinline double ceil ( const double x ) { return ::ceil (x); }
 
-#if defined(__aarch64__)
-    __forceinline float mini(float a, float b) {
-        // FP and Neon shares same vector register in arm64
-        __m128 x;
-        __m128 y;
-        x[0] = a;
-        y[0] = b;
-        x = _mm_min_ps(x, y);
-        return x[0];
-    }
-#elif defined(__SSE4_1__)
-  __forceinline float mini(float a, float b) {
-    const __m128i ai = _mm_castps_si128(_mm_set_ss(a));
-    const __m128i bi = _mm_castps_si128(_mm_set_ss(b));
-    const __m128i ci = _mm_min_epi32(ai,bi);
-    return _mm_cvtss_f32(_mm_castsi128_ps(ci));
-  }
-#endif
-
-#if defined(__aarch64__)
-    __forceinline float maxi(float a, float b) {
-        // FP and Neon shares same vector register in arm64
-        __m128 x;
-        __m128 y;
-        x[0] = a;
-        y[0] = b;
-        x = _mm_max_ps(x, y);
-        return x[0];
-    }
-#elif defined(__SSE4_1__)
-  __forceinline float maxi(float a, float b) {
-    const __m128i ai = _mm_castps_si128(_mm_set_ss(a));
-    const __m128i bi = _mm_castps_si128(_mm_set_ss(b));
-    const __m128i ci = _mm_max_epi32(ai,bi);
-    return _mm_cvtss_f32(_mm_castsi128_ps(ci));
-  }
-#endif
-
   template<typename T>
     __forceinline T twice(const T& a) { return a+a; }
 
@@ -247,11 +142,8 @@ namespace embree
   __forceinline  int64_t min(int64_t  a, int64_t  b) { return a<b ? a:b; }
   __forceinline    float min(float    a, float    b) { return a<b ? a:b; }
   __forceinline   double min(double   a, double   b) { return a<b ? a:b; }
-#if defined(__64BIT__) || defined(__EMSCRIPTEN__)
+#if defined(__64BIT__)
   __forceinline   size_t min(size_t   a, size_t   b) { return a<b ? a:b; }
-#endif
-#if defined(__EMSCRIPTEN__)
-  __forceinline   long   min(long     a, long     b) { return a<b ? a:b; }
 #endif
 
   template<typename T> __forceinline T min(const T& a, const T& b, const T& c) { return min(min(a,b),c); }
@@ -267,11 +159,8 @@ namespace embree
   __forceinline  int64_t max(int64_t  a, int64_t  b) { return a<b ? b:a; }
   __forceinline    float max(float    a, float    b) { return a<b ? b:a; }
   __forceinline   double max(double   a, double   b) { return a<b ? b:a; }
-#if defined(__64BIT__) || defined(__EMSCRIPTEN__)
+#if defined(__64BIT__)
   __forceinline   size_t max(size_t   a, size_t   b) { return a<b ? b:a; }
-#endif
-#if defined(__EMSCRIPTEN__)
-  __forceinline   long   max(long     a, long     b) { return a<b ? b:a; }
 #endif
 
   template<typename T> __forceinline T max(const T& a, const T& b, const T& c) { return max(max(a,b),c); }
@@ -307,26 +196,10 @@ namespace embree
   template<typename T> __forceinline T  sin2cos ( const T& x )  { return sqrt(max(T(zero),T(one)-x*x)); }
   template<typename T> __forceinline T  cos2sin ( const T& x )  { return sin2cos(x); }
 
-#if defined(__AVX2__)
-  __forceinline float madd  ( const float a, const float b, const float c) { return _mm_cvtss_f32(_mm_fmadd_ss(_mm_set_ss(a),_mm_set_ss(b),_mm_set_ss(c))); }
-  __forceinline float msub  ( const float a, const float b, const float c) { return _mm_cvtss_f32(_mm_fmsub_ss(_mm_set_ss(a),_mm_set_ss(b),_mm_set_ss(c))); }
-  __forceinline float nmadd ( const float a, const float b, const float c) { return _mm_cvtss_f32(_mm_fnmadd_ss(_mm_set_ss(a),_mm_set_ss(b),_mm_set_ss(c))); }
-  __forceinline float nmsub ( const float a, const float b, const float c) { return _mm_cvtss_f32(_mm_fnmsub_ss(_mm_set_ss(a),_mm_set_ss(b),_mm_set_ss(c))); }
-  
-#elif defined (__aarch64__) && defined(__clang__)
-#pragma clang fp contract(fast)
-__forceinline float madd  ( const float a, const float b, const float c) { return a*b + c; }
-__forceinline float msub  ( const float a, const float b, const float c) { return a*b - c; }
-__forceinline float nmadd ( const float a, const float b, const float c) { return c - a*b; }
-__forceinline float nmsub ( const float a, const float b, const float c) { return -(c + a*b); }
-#pragma clang fp contract(on)
-  
-#else
   __forceinline float madd  ( const float a, const float b, const float c) { return a*b+c; }
   __forceinline float msub  ( const float a, const float b, const float c) { return a*b-c; }
   __forceinline float nmadd ( const float a, const float b, const float c) { return -a*b+c;}
   __forceinline float nmsub ( const float a, const float b, const float c) { return -a*b-c; }
-#endif
 
   /*! random functions */
   template<typename T> T random() { return T(0); }
@@ -383,7 +256,7 @@ __forceinline float nmsub ( const float a, const float b, const float c) { retur
     static __forceinline void store (bool mask, void* ptr, const float v) { if (mask) *(float*)ptr = v; }
     static __forceinline void storeu(bool mask, void* ptr, const float v) { if (mask) *(float*)ptr = v; }
   };
-  
+
   /*! bit reverse operation */
   template<class T>
     __forceinline T bitReverse(const T& vin)
@@ -401,7 +274,7 @@ __forceinline float nmsub ( const float a, const float b, const float c) { retur
   template<class T>
     __forceinline T bitInterleave(const T& xin, const T& yin, const T& zin)
   {
-	T x = xin, y = yin, z = zin;
+       T x = xin, y = yin, z = zin;
     x = (x | (x << 16)) & 0x030000FF;
     x = (x | (x <<  8)) & 0x0300F00F;
     x = (x | (x <<  4)) & 0x030C30C3;
@@ -420,46 +293,6 @@ __forceinline float nmsub ( const float a, const float b, const float c) { retur
     return x | (y << 1) | (z << 2);
   }
 
-#if defined(__AVX2__) && !defined(__aarch64__)
-
-  template<>
-    __forceinline unsigned int bitInterleave(const unsigned int &xi, const unsigned int& yi, const unsigned int& zi)
-  {
-    const unsigned int xx = pdep(xi,0x49249249 /* 0b01001001001001001001001001001001 */ );
-    const unsigned int yy = pdep(yi,0x92492492 /* 0b10010010010010010010010010010010 */);
-    const unsigned int zz = pdep(zi,0x24924924 /* 0b00100100100100100100100100100100 */);
-    return xx | yy | zz;
-  }
-
-#endif
-
-  /*! bit interleave operation for 64bit data types*/
-  template<class T>
-    __forceinline T bitInterleave64(const T& xin, const T& yin, const T& zin){
-    T x = xin & 0x1fffff;
-    T y = yin & 0x1fffff;
-    T z = zin & 0x1fffff;
-
-    x = (x | x << 32) & 0x1f00000000ffff;
-    x = (x | x << 16) & 0x1f0000ff0000ff;
-    x = (x | x << 8) & 0x100f00f00f00f00f;
-    x = (x | x << 4) & 0x10c30c30c30c30c3;
-    x = (x | x << 2) & 0x1249249249249249;
-
-    y = (y | y << 32) & 0x1f00000000ffff;
-    y = (y | y << 16) & 0x1f0000ff0000ff;
-    y = (y | y << 8) & 0x100f00f00f00f00f;
-    y = (y | y << 4) & 0x10c30c30c30c30c3;
-    y = (y | y << 2) & 0x1249249249249249;
-
-    z = (z | z << 32) & 0x1f00000000ffff;
-    z = (z | z << 16) & 0x1f0000ff0000ff;
-    z = (z | z << 8) & 0x100f00f00f00f00f;
-    z = (z | z << 4) & 0x10c30c30c30c30c3;
-    z = (z | z << 2) & 0x1249249249249249;
-
-    return x | (y << 1) | (z << 2);
-  }
 }
 
 #endif

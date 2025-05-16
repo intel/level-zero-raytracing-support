@@ -18,9 +18,7 @@ namespace embree
     enum { N = 2 };
     union {
       struct { T x, y; };
-#if !(defined(__WIN32__) && _MSC_VER == 1800) // workaround for older VS 2013 compiler
       T components[N];
-#endif
     };
 
     typedef T Scalar;
@@ -50,13 +48,8 @@ namespace embree
     __forceinline Vec2( PosInfTy ) : x(pos_inf), y(pos_inf) {}
     __forceinline Vec2( NegInfTy ) : x(neg_inf), y(neg_inf) {}
 
-#if defined(__WIN32__) && _MSC_VER == 1800 // workaround for older VS 2013 compiler
-	__forceinline const T& operator [](const size_t axis) const { assert(axis < 2); return (&x)[axis]; }
-	__forceinline       T& operator [](const size_t axis)       { assert(axis < 2); return (&x)[axis]; }
-#else
-	__forceinline const T& operator [](const size_t axis) const { assert(axis < 2); return components[axis]; }
-	__forceinline       T& operator [](const size_t axis )      { assert(axis < 2); return components[axis]; }
-#endif
+    __forceinline const T& operator [](const size_t axis) const { assert(axis < 2); return components[axis]; }
+    __forceinline       T& operator [](const size_t axis )      { assert(axis < 2); return components[axis]; }
   };
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -202,35 +195,3 @@ namespace embree
   typedef Vec2<int  > Vec2i;
   typedef Vec2<float> Vec2f;
 }
-
-//#include "vec2fa.h"
-
-#if defined(__SSE__) || defined(__ARM_NEON)
-#include "../simd/sse.h"
-#endif
-
-#if defined(__AVX__)
-#include "../simd/avx.h"
-#endif
-
-#if defined(__AVX512F__)
-#include "../simd/avx512.h"
-#endif
-
-/*namespace embree
-{
-  template<> __forceinline Vec2<float>::Vec2(const Vec2fa& a) : x(a.x), y(a.y) {}
-
-#if defined(__SSE__) || defined(__ARM_NEON)
-  template<> __forceinline Vec2<vfloat4>::Vec2(const Vec2fa& a) : x(a.x), y(a.y) {}
-#endif
-
-#if defined(__AVX__)
-  template<> __forceinline Vec2<vfloat8>::Vec2(const Vec2fa& a) : x(a.x), y(a.y) {}
-#endif
-
-#if defined(__AVX512F__)
-  template<> __forceinline Vec2<vfloat16>::Vec2(const Vec2fa& a) : x(a.x), y(a.y) {}
-#endif
-
-}*/

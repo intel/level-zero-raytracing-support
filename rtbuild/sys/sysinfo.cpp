@@ -344,7 +344,7 @@ namespace embree
 
     return cpu_features;
 
-#elif defined(__ARM_NEON) || defined(__EMSCRIPTEN__)
+#elif defined(__ARM_NEON)
 
     int cpu_features = CPU_FEATURE_NEON|CPU_FEATURE_SSE|CPU_FEATURE_SSE2;
     cpu_features |= CPU_FEATURE_SSE3|CPU_FEATURE_SSSE3|CPU_FEATURE_SSE42;
@@ -642,10 +642,6 @@ namespace embree
 #include <sys/time.h>
 #include <pthread.h>
 
-#if defined(__EMSCRIPTEN__)
-#include <emscripten.h>
-#endif
-
 namespace embree
 {
   unsigned int getNumberOfLogicalThreads() 
@@ -656,22 +652,6 @@ namespace embree
 #if defined(__MACOSX__) || defined(__ANDROID__)
     nThreads = sysconf(_SC_NPROCESSORS_ONLN); // does not work in Linux LXC container
     assert(nThreads);
-#elif defined(__EMSCRIPTEN__)
-    // WebAssembly supports pthreads, but not pthread_getaffinity_np. Get the number of logical
-    // threads from the browser or Node.js using JavaScript.
-    nThreads = MAIN_THREAD_EM_ASM_INT({
-        const isBrowser = typeof window !== 'undefined';
-        const isNode = typeof process !== 'undefined' && process.versions != null &&
-            process.versions.node != null;
-        if (isBrowser) {
-            // Return 1 if the browser does not expose hardwareConcurrency.
-            return window.navigator.hardwareConcurrency || 1;
-        } else if (isNode) {
-            return require('os').cpus().length;
-        } else {
-            return 1;
-        }
-    });
 #else
     cpu_set_t set;
     if (pthread_getaffinity_np(pthread_self(), sizeof(set), &set) == 0)

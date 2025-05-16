@@ -22,56 +22,6 @@
 #define __SSE2__
 #endif
 
-/* define isa namespace and ISA bitvector */
-#if defined (__AVX512VL__)
-#  define isa avx512
-#  define ISA AVX512
-#  define ISA_STR "AVX512"
-#elif defined (__AVX2__)
-#  define isa avx2
-#  define ISA AVX2
-#  define ISA_STR "AVX2"
-#elif defined(__AVXI__)
-#  define isa avxi
-#  define ISA AVXI
-#  define ISA_STR "AVXI"
-#elif defined(__AVX__)
-#  define isa avx
-#  define ISA AVX
-#  define ISA_STR "AVX"
-#elif defined (__SSE4_2__)
-#  define isa sse42
-#  define ISA SSE42
-#  define ISA_STR "SSE4.2"
-//#elif defined (__SSE4_1__) //  we demote this to SSE2, MacOSX code compiles with SSE41 by default with XCode 11
-//#  define isa sse41
-//#  define ISA SSE41
-//#  define ISA_STR "SSE4.1"
-//#elif defined(__SSSE3__) // we demote this to SSE2, MacOSX code compiles with SSSE3 by default with ICC
-//#  define isa ssse3
-//#  define ISA SSSE3
-//#  define ISA_STR "SSSE3"
-//#elif defined(__SSE3__) // we demote this to SSE2, MacOSX code compiles with SSE3 by default with clang
-//#  define isa sse3
-//#  define ISA SSE3
-//#  define ISA_STR "SSE3"
-#elif defined(__SSE2__) || defined(__SSE3__) || defined(__SSSE3__)
-#  define isa sse2
-#  define ISA SSE2
-#  define ISA_STR "SSE2"
-#elif defined(__SSE__)
-#  define isa sse
-#  define ISA SSE
-#  define ISA_STR "SSE"
-#elif defined(__ARM_NEON)
-// NOTE(LTE): Use sse2 for `isa` for the compatibility at the moment.
-#define isa sse2
-#define ISA NEON
-#define ISA_STR "NEON"
-#else
-#error Unknown ISA
-#endif
-
 namespace embree
 {
   enum class CPU

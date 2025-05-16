@@ -21,9 +21,7 @@ namespace embree
       struct {
 	T x, y, z;
       };
-#if !(defined(__WIN32__) && _MSC_VER == 1800) // workaround for older VS 2013 compiler
       T components[N];
-#endif
     };
 
     typedef T Scalar;
@@ -53,13 +51,8 @@ namespace embree
     __forceinline Vec3( PosInfTy ) : x(pos_inf), y(pos_inf), z(pos_inf) {}
     __forceinline Vec3( NegInfTy ) : x(neg_inf), y(neg_inf), z(neg_inf) {}
 
-#if defined(__WIN32__) && (_MSC_VER == 1800) // workaround for older VS 2013 compiler
-    __forceinline const T& operator []( const size_t axis ) const { assert(axis < 3); return (&x)[axis]; }
-    __forceinline       T& operator []( const size_t axis )       { assert(axis < 3); return (&x)[axis]; }
-#else
-	__forceinline const T& operator [](const size_t axis) const { assert(axis < 3); return components[axis]; }
-	__forceinline       T& operator [](const size_t axis)       { assert(axis < 3); return components[axis]; }
-#endif
+    __forceinline const T& operator [](const size_t axis) const { assert(axis < 3); return components[axis]; }
+    __forceinline       T& operator [](const size_t axis)       { assert(axis < 3); return components[axis]; }
   };
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -261,97 +254,9 @@ namespace embree
 #include "vec3ia.h"
 #include "vec3fa.h"
 
-////////////////////////////////////////////////////////////////////////////////
-/// SSE / AVX / MIC specializations
-////////////////////////////////////////////////////////////////////////////////
-
-#if defined(__SSE__) || defined(__ARM_NEON)
 #include "../simd/sse.h"
-#endif
-
-#if defined(__AVX__)
-#include "../simd/avx.h"
-#endif
-
-#if defined(__AVX512F__)
-#include "../simd/avx512.h"
-#endif
 
 namespace embree
 {
-  template<typename Out, typename In>
-  __forceinline Vec3<Out> broadcast(const Vec3<In>& a, const size_t k) {
-    return Vec3<Out>(Out(a.x[k]), Out(a.y[k]), Out(a.z[k]));
-  }
-
   template<> __forceinline Vec3<float>::Vec3(const Vec3fa& a) { x = a.x; y = a.y; z = a.z; }
-
-#if !defined(__SYCL_DEVICE_ONLY__)
-
-#if defined(__AVX__)
-  template<> __forceinline Vec3<vfloat4>::Vec3(const Vec3fa& a) {
-    x = a.x; y = a.y; z = a.z;
-  }
-#elif defined(__SSE__) || defined(__ARM_NEON)
-  template<>
-  __forceinline Vec3<vfloat4>::Vec3(const Vec3fa& a) {
-    const vfloat4 v = vfloat4(a.m128); x = shuffle<0,0,0,0>(v); y = shuffle<1,1,1,1>(v); z = shuffle<2,2,2,2>(v);
-  }
-#endif
-
-#if defined(__SSE__) || defined(__ARM_NEON)
-  template<>
-  __forceinline Vec3<vfloat4> broadcast<vfloat4,vfloat4>(const Vec3<vfloat4>& a, const size_t k) {
-    return Vec3<vfloat4>(vfloat4::broadcast(&a.x[k]), vfloat4::broadcast(&a.y[k]), vfloat4::broadcast(&a.z[k]));
-  }
-
-  template<int i0, int i1, int i2, int i3>
-  __forceinline Vec3<vfloat4> shuffle(const Vec3<vfloat4>& b) {
-    return Vec3<vfloat4>(shuffle<i0,i1,i2,i3>(b.x), shuffle<i0,i1,i2,i3>(b.y), shuffle<i0,i1,i2,i3>(b.z));
-  }
-#endif
-
-#if defined(__AVX__)
-  template<>
-  __forceinline Vec3<vfloat8>::Vec3(const Vec3fa& a) {
-    x = a.x; y = a.y; z = a.z;
-  }
-
-  template<>
-  __forceinline Vec3<vfloat8> broadcast<vfloat8,vfloat4>(const Vec3<vfloat4>& a, const size_t k) {
-    return Vec3<vfloat8>(vfloat8::broadcast(&a.x[k]), vfloat8::broadcast(&a.y[k]), vfloat8::broadcast(&a.z[k]));
-  }
-  template<>
-  __forceinline Vec3<vfloat8> broadcast<vfloat8,vfloat8>(const Vec3<vfloat8>& a, const size_t k) {
-    return Vec3<vfloat8>(vfloat8::broadcast(&a.x[k]), vfloat8::broadcast(&a.y[k]), vfloat8::broadcast(&a.z[k]));
-  }
-
-  template<int i0, int i1, int i2, int i3>
-  __forceinline Vec3<vfloat8> shuffle(const Vec3<vfloat8>& b) {
-    return Vec3<vfloat8>(shuffle<i0,i1,i2,i3>(b.x), shuffle<i0,i1,i2,i3>(b.y), shuffle<i0,i1,i2,i3>(b.z));
-  }
-#endif
-
-#if defined(__AVX512F__)
-  template<> __forceinline Vec3<vfloat16>::Vec3(const Vec3fa& a) : x(a.x), y(a.y), z(a.z) {}
-#endif
-  
-#else
-
-#if defined(__SSE__)
-  template<> __forceinline Vec3<vfloat4>::Vec3(const Vec3fa& a) {
-    x = a.x; y = a.y; z = a.z;
-  }
-#endif
-#if defined(__AVX__)
-  template<> __forceinline Vec3<vfloat8>::Vec3(const Vec3fa& a) {
-    x = a.x; y = a.y; z = a.z;
-  }
-#endif
-#if defined(__AVX512F__)
-  template<> __forceinline Vec3<vfloat16>::Vec3(const Vec3fa& a) {
-    x = a.x; y = a.y; z = a.z;
-  }
-#endif
-#endif
 }

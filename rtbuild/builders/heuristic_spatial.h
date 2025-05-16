@@ -40,19 +40,11 @@ namespace embree
 
         __forceinline std::pair<vint4,vint4> bin(const BBox3fa& b) const
         {
-#if defined(__AVX__)
-          const vfloat8 ofs8(ofs);
-          const vfloat8 scale8(scale);
-          const vint8 lu   = floori((vfloat8::loadu(&b)-ofs8)*scale8);
-          const vint8 c_lu = clamp(lu,vint8(zero),vint8(BINS-1));
-          return std::pair<vint4,vint4>(extract4<0>(c_lu),extract4<1>(c_lu));
-#else
           const vint4 lower = floori((vfloat4(b.lower)-ofs)*scale);
           const vint4 upper = floori((vfloat4(b.upper)-ofs)*scale);
           const vint4 c_lower = clamp(lower,vint4(0),vint4(BINS-1));
           const vint4 c_upper = clamp(upper,vint4(0),vint4(BINS-1));
           return std::pair<vint4,vint4>(c_lower,c_upper);
-#endif
         }
 
         

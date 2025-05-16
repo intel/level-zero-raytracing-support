@@ -15,6 +15,7 @@ namespace embree
     template <> __forceinline double divideByTwo<double>(const double& v) { return v * 0.5; }
 
   } // namespace internal
+  
   template<typename T>
   struct BBox
   {
@@ -82,14 +83,12 @@ namespace embree
     return lower > upper;
   }
 
-#if defined(__SSE__) || defined(__ARM_NEON)
   template<> __forceinline bool BBox<Vec3fa>::empty() const {
     return !all(le_mask(lower,upper));
   }
   template<> __forceinline bool BBox<Vec3fx>::empty() const {
     return !all(le_mask(lower,upper));
   }
-#endif
 
   /*! tests if box is finite */
   __forceinline bool isvalid( const BBox<Vec3fa>& v ) {
@@ -228,109 +227,3 @@ namespace embree
   typedef BBox<Vec3fx> BBox3fx;
   typedef BBox<Vec3ff> BBox3ff;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-/// SSE / AVX / MIC specializations
-////////////////////////////////////////////////////////////////////////////////
-
-#if defined (__SSE__) || defined(__ARM_NEON)
-#include "../simd/sse.h"
-#endif
-
-#if defined (__AVX__)
-#include "../simd/avx.h"
-#endif
-
-#if defined(__AVX512F__)
-#include "../simd/avx512.h"
-#endif
-
-namespace embree
-{
-  template<int N>
-    __forceinline BBox<Vec3<vfloat<N>>> transpose(const BBox3fa* bounds);
-  
-  template<>
-    __forceinline BBox<Vec3<vfloat4>> transpose<4>(const BBox3fa* bounds)
-  {
-    BBox<Vec3<vfloat4>> dest;
-    
-    transpose((vfloat4&)bounds[0].lower,
-              (vfloat4&)bounds[1].lower,
-              (vfloat4&)bounds[2].lower,
-              (vfloat4&)bounds[3].lower,
-              dest.lower.x,
-              dest.lower.y,
-              dest.lower.z);
-    
-    transpose((vfloat4&)bounds[0].upper,
-              (vfloat4&)bounds[1].upper,
-              (vfloat4&)bounds[2].upper,
-              (vfloat4&)bounds[3].upper,
-              dest.upper.x,
-              dest.upper.y,
-              dest.upper.z);
-    
-    return dest;
-  }
-  
-#if defined(__AVX__)
-  template<>
-    __forceinline BBox<Vec3<vfloat8>> transpose<8>(const BBox3fa* bounds)
-  {
-    BBox<Vec3<vfloat8>> dest;
-    
-    transpose((vfloat4&)bounds[0].lower,
-              (vfloat4&)bounds[1].lower,
-              (vfloat4&)bounds[2].lower,
-              (vfloat4&)bounds[3].lower,
-              (vfloat4&)bounds[4].lower,
-              (vfloat4&)bounds[5].lower,
-              (vfloat4&)bounds[6].lower,
-              (vfloat4&)bounds[7].lower,
-              dest.lower.x,
-              dest.lower.y,
-              dest.lower.z);
-    
-    transpose((vfloat4&)bounds[0].upper,
-              (vfloat4&)bounds[1].upper,
-              (vfloat4&)bounds[2].upper,
-              (vfloat4&)bounds[3].upper,
-              (vfloat4&)bounds[4].upper,
-              (vfloat4&)bounds[5].upper,
-              (vfloat4&)bounds[6].upper,
-              (vfloat4&)bounds[7].upper,
-              dest.upper.x,
-              dest.upper.y,
-              dest.upper.z);
-    
-    return dest;
-  }
-#endif
-  
-  template<int N>
-    __forceinline BBox3fa merge(const BBox3fa* bounds);
-  
-  template<>
-    __forceinline BBox3fa merge<4>(const BBox3fa* bounds)
-  {
-    const Vec3fa lower = min(min(bounds[0].lower,bounds[1].lower),
-                             min(bounds[2].lower,bounds[3].lower));
-    const Vec3fa upper = max(max(bounds[0].upper,bounds[1].upper),
-                             max(bounds[2].upper,bounds[3].upper));
-    return BBox3fa(lower,upper);
-  }
-  
-#if defined(__AVX__)
-  template<>
-    __forceinline BBox3fa merge<8>(const BBox3fa* bounds)
-  {
-    const Vec3fa lower = min(min(min(bounds[0].lower,bounds[1].lower),min(bounds[2].lower,bounds[3].lower)),
-                             min(min(bounds[4].lower,bounds[5].lower),min(bounds[6].lower,bounds[7].lower)));
-    const Vec3fa upper = max(max(max(bounds[0].upper,bounds[1].upper),max(bounds[2].upper,bounds[3].upper)),
-                             max(max(bounds[4].upper,bounds[5].upper),max(bounds[6].upper,bounds[7].upper)));
-    return BBox3fa(lower,upper);
-  }
-#endif
-}
-

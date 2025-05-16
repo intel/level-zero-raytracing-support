@@ -21,15 +21,6 @@ namespace embree
   {
     __forceinline PrimRef () {}
 
-#if defined(__AVX__)
-    __forceinline PrimRef(const PrimRef& v) { 
-      vfloat8::store((float*)this,vfloat8::load((float*)&v));
-    }
-    __forceinline PrimRef& operator=(const PrimRef& v) { 
-      vfloat8::store((float*)this,vfloat8::load((float*)&v)); return *this;
-    }
-#endif
-
     __forceinline PrimRef (const BBox3fa& bounds, unsigned int geomID, unsigned int primID) 
     {
       lower = Vec3fx(bounds.lower, geomID);
@@ -69,13 +60,6 @@ namespace embree
       center_o = embree::center2(bounds_o);
     }
 
-    __forceinline unsigned& geomIDref() {  // FIXME: remove !!!!!!!
-      return lower.u;
-    }
-    __forceinline unsigned& primIDref() {  // FIXME: remove !!!!!!!
-      return upper.u;
-    }
-    
     /*! returns the geometry ID */
     __forceinline unsigned geomID() const { 
       return lower.a;
@@ -118,31 +102,6 @@ namespace embree
   /*! fast exchange for PrimRefs */
   __forceinline void xchg(PrimRef& a, PrimRef& b)
   {
-#if defined(__AVX__)
-    const vfloat8 aa = vfloat8::load((float*)&a);
-    const vfloat8 bb = vfloat8::load((float*)&b);
-    vfloat8::store((float*)&a,bb);
-    vfloat8::store((float*)&b,aa);
-#else
     std::swap(a,b);
-#endif
   }
-  
-  
-  /************************************************************************************/
-  /************************************************************************************/
-  /************************************************************************************/
-  /************************************************************************************/
-  
-  struct SubGridBuildData {
-    unsigned short sx,sy;
-    unsigned int primID;
-    
-    __forceinline SubGridBuildData() {};
-    __forceinline SubGridBuildData(const unsigned int sx, const unsigned int sy, const unsigned int primID) : sx(sx), sy(sy), primID(primID) {};
-    
-    __forceinline size_t x() const { return (size_t)sx & 0x7fff; }
-    __forceinline size_t y() const { return (size_t)sy & 0x7fff; }
-    
-  };
 }
