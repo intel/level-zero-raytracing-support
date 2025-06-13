@@ -31,14 +31,12 @@ Source0: %{url}/archive/%{ver}/intel-level-zero-gpu-raytracing-%{ver}.tar.gz
 BuildRequires: make gcc-c++ cmake git pkg-config
 
 %description
-The oneAPI Level Zero Ray Tracing Support library implements high performance CPU
-based construction algorithms for 3D acceleration structures that are
-compatible with the ray tracing hardware of Intel GPUs.
-This library is used by Intel(R) oneAPI Level Zero to implement part of the
-RTAS builder extension.
-This library should not get used directly but only through Level Zero.
-.
-oneAPI Level Zero Ray Tracing Support
+A library that provides high-performance CPU-based construction algorithms for
+3D acceleration structures, designed to work with the ray tracing hardware of
+Intel GPUs. Intel(R) oneAPI Level Zero uses this library to implement the Ray
+Tracing Acceleration Structures (RTAS) builder extension. The library is
+intended for use exclusively through Level Zero and is not meant to be accessed
+directly.
 
 
 %debug
