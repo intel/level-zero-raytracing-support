@@ -36,6 +36,12 @@ jobs:
         cmake -G "Visual Studio 17 2022" -A "x64" ..
         cmake --build . --config ReleaseInternal --target package
 
+  source-code-analysis:
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/source_analysis.yml@main
+    with:
+      project-name: c_levelzeroraytracingsupport_26693
+      path-to-src: .
+
   binary-analysis:
     needs:
       - release-ze_raytracing-ubuntu22_04-GCC
@@ -67,6 +73,7 @@ jobs:
       - release-ze_raytracing-windows-VS2022
       - binary-analysis
       - antivirus-scan
+      - source-code-analysis
 
     if: failure() || cancelled()
     steps:
