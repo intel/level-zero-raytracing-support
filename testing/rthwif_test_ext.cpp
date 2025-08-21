@@ -10,6 +10,7 @@
 #pragma clang diagnostic ignored "-Wignored-attributes"
 
 #include <sycl/sycl.hpp>
+#include "usm_allocator.h"
 #include "tbb/tbb.h"
 
 #if defined(ZE_RAYTRACING)
@@ -762,11 +763,11 @@ public:
   ze_rtas_builder_geometry_ext_flags_t gflags = 0;
   bool procedural = false;
   
-  typedef sycl::usm_allocator<sycl::int4, sycl::usm::alloc::shared> triangles_alloc_ty;
+  typedef usm_allocator<sycl::int4, sycl::usm::alloc::shared> triangles_alloc_ty;
   triangles_alloc_ty triangles_alloc;
   std::vector<sycl::int4, triangles_alloc_ty> triangles;
 
-  typedef sycl::usm_allocator<sycl::float3, sycl::usm::alloc::shared> vertices_alloc_ty;
+  typedef usm_allocator<sycl::float3, sycl::usm::alloc::shared> vertices_alloc_ty;
   vertices_alloc_ty vertices_alloc;
   std::vector<sycl::float3, vertices_alloc_ty> vertices;
   
@@ -1365,7 +1366,7 @@ struct Scene
 
   std::shared_ptr<Geometry> operator[] ( size_t i ) { return geometries[i]; }
 
-  typedef sycl::usm_allocator<std::shared_ptr<Geometry>, sycl::usm::alloc::shared> geometries_alloc_ty;
+  typedef usm_allocator<std::shared_ptr<Geometry>, sycl::usm::alloc::shared> geometries_alloc_ty;
   geometries_alloc_ty geometries_alloc;
   std::vector<std::shared_ptr<Geometry>, geometries_alloc_ty> geometries;
 
