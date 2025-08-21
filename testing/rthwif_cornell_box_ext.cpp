@@ -481,6 +481,11 @@ void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, 
       if (err != ZE_RESULT_SUCCESS)
         throw std::runtime_error("zeRTASBuilderCommandListAppendCopyExt failed");
 
+      /* this is required for some reason */
+      queue.submit([&](sycl::handler& cgh) {
+        cgh.single_task([=]() {});
+      });
+
       queue.wait();
     }
 
@@ -513,7 +518,6 @@ void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, 
       if (err != ZE_RESULT_SUCCESS)
         throw std::runtime_error("zeCommandListDestroy failed");
     }
-    
     my_aligned_free(accelHost);
   }
   
