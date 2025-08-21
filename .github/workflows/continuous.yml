@@ -78,7 +78,7 @@ jobs:
     with:
       image: embree/ubuntu:22.04
       runs-on: '[ "Linux", "docker", "build" ]'
-      dpcpp-version: icx/compiler_ppkg-rel/20240415
+      dpcpp-version: intel/2025.2.1.7
       artifact-out: ze_raytracing-linux-ICX-test
       artifact-path: ./build/intel-level-zero-gpu-raytracing*.tar.gz
       cmd: |

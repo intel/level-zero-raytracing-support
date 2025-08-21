@@ -314,6 +314,14 @@ IF (ZE_RAYTRACING_SYCL_TESTS)
       FILE(GLOB_RECURSE LIB_URADAPTER_FILES "${DPCPP_COMPILER_DIR}/../lib/libur_adapter_level_zero.so.*")
       INSTALL(FILES ${LIB_URADAPTER_FILES} DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT lib)
 
+      FILE(GLOB_RECURSE LIB_HWLOC_FILES "${DPCPP_COMPILER_DIR}/../lib/libhwloc.so.*")
+      FOREACH(so_file ${LIB_HWLOC_FILES})
+        # In newer versions of CMake FOLLOW_SYMLINKS can be used instead of this mechanism
+        GET_FILENAME_COMPONENT(name "${so_file}" NAME)
+        GET_FILENAME_COMPONENT(real_file "${so_file}" REALPATH)
+        INSTALL(FILES "${real_file}" DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME "${name}" COMPONENT lib)
+      ENDFOREACH()
+
       FILE(GLOB_RECURSE LIB_UMF_FILES
         "${DPCPP_COMPILER_DIR}/../lib/libumf.so.*"
         "${DPCPP_COMPILER_DIR}/../../../umf/latest/libumf.so.*")
