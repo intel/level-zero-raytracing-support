@@ -512,20 +512,6 @@ namespace embree
   void sleepSeconds(double t) {
     Sleep(DWORD(1000.0*t));
   }
-
-  size_t getVirtualMemoryBytes()
-  {
-    PROCESS_MEMORY_COUNTERS info;
-    GetProcessMemoryInfo( GetCurrentProcess( ), &info, sizeof(info) );
-    return (size_t)info.QuotaPeakPagedPoolUsage;
-  }
-
-  size_t getResidentMemoryBytes()
-  {
-    PROCESS_MEMORY_COUNTERS info;
-    GetProcessMemoryInfo( GetCurrentProcess( ), &info, sizeof(info) );
-    return (size_t)info.WorkingSetSize;
-  }
 }
 #endif
 
@@ -548,22 +534,6 @@ namespace embree
     if (readlink(pid.c_str(), buf, sizeof(buf)-1) == -1)
       return std::string();
     return std::string(buf);
-  }
-
-  size_t getVirtualMemoryBytes()
-  {
-    size_t virt, resident, shared;
-    std::ifstream buffer("/proc/self/statm");
-    buffer >> virt >> resident >> shared;
-    return virt*sysconf(_SC_PAGE_SIZE);
-  }
-
-  size_t getResidentMemoryBytes()
-  {
-    size_t virt, resident, shared;
-    std::ifstream buffer("/proc/self/statm");
-    buffer >> virt >> resident >> shared;
-    return resident*sysconf(_SC_PAGE_SIZE);
   }
 }
 
@@ -589,14 +559,6 @@ namespace embree
       return std::string();
     return std::string(buf);
   }
-
-  size_t getVirtualMemoryBytes() {
-    return 0;
-  }
-   
-  size_t getResidentMemoryBytes() {
-    return 0;
-  }
 }
 
 #endif
@@ -618,14 +580,6 @@ namespace embree
     if (_NSGetExecutablePath(buf, &size) != 0)
       return std::string();
     return std::string(buf);
-  }
-
-  size_t getVirtualMemoryBytes() {
-    return 0;
-  }
-   
-  size_t getResidentMemoryBytes() {
-    return 0;
   }
 }
 
