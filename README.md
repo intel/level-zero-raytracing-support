@@ -51,7 +51,7 @@ The oneAPI Level Zero Ray Tracing Support library is available for installation 
 For example on Ubuntu* 22.04:
 
 ```
-apt-get install ze-intel-gpu-raytracing
+apt-get install libze-intel-gpu-raytracing
 ```
 
 
