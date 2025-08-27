@@ -175,7 +175,6 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
       project: "Level Zero Ray Tracing Support"
-      coverity: true
       server: prod4
       prebuild: |
         cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_STATIC=ON
