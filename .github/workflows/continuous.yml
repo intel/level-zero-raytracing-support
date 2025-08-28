@@ -170,7 +170,7 @@ jobs:
         ctest
         if ($LASTEXITCODE -ne 0) { throw "Command failed" }
 
-  static-analysis-coverity:
+  static-analysis-coverity-linux:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
     with:
@@ -179,6 +179,18 @@ jobs:
       prebuild: |
         cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_STATIC=ON
       build: cmake --build build
+      os: Linux
+
+  static-analysis-coverity-windows:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    with:
+      project: "Level Zero Ray Tracing Support"
+      server: prod4
+      prebuild: |
+        cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_STATIC=ON
+      build: cmake --build build
+      os: Windows
 
   success:
     runs-on: ubuntu-latest
@@ -194,7 +206,8 @@ jobs:
       - ze_raytracing-windows-VS2022-ReleaseInternal
       - ze_raytracing-windows-test
       - ze_raytracing-windows-test-DG2
-      - static-analysis-coverity
+      - static-analysis-coverity-linux
+      - static-analysis-coverity-windows
     if: failure() || cancelled()
     steps:
       - name: Failure
