@@ -462,35 +462,6 @@ namespace embree
     return std::string(filename);
   }
 
-  unsigned int getNumberOfLogicalThreads() 
-  {
-    static int nThreads = -1;
-    if (nThreads != -1) return nThreads;
-
-    typedef WORD (WINAPI *GetActiveProcessorGroupCountFunc)();
-    typedef DWORD (WINAPI *GetActiveProcessorCountFunc)(WORD);
-    HMODULE hlib = LoadLibrary("Kernel32");
-    GetActiveProcessorGroupCountFunc pGetActiveProcessorGroupCount = (GetActiveProcessorGroupCountFunc)GetProcAddress(hlib, "GetActiveProcessorGroupCount");
-    GetActiveProcessorCountFunc      pGetActiveProcessorCount      = (GetActiveProcessorCountFunc)     GetProcAddress(hlib, "GetActiveProcessorCount");
-
-    if (pGetActiveProcessorGroupCount && pGetActiveProcessorCount) 
-    {
-      int groups = pGetActiveProcessorGroupCount();
-      int totalProcessors = 0;
-      for (int i = 0; i < groups; i++) 
-        totalProcessors += pGetActiveProcessorCount(i);
-      nThreads = totalProcessors;
-    }
-    else
-    {
-      SYSTEM_INFO sysinfo;
-      GetSystemInfo(&sysinfo);
-      nThreads = sysinfo.dwNumberOfProcessors;
-    }
-    assert(nThreads);
-    return nThreads;
-  }
-
   int getTerminalWidth() 
   {
     HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -598,24 +569,6 @@ namespace embree
 
 namespace embree
 {
-  unsigned int getNumberOfLogicalThreads() 
-  {
-    static int nThreads = -1;
-    if (nThreads != -1) return nThreads;
-
-#if defined(__MACOSX__) || defined(__ANDROID__)
-    nThreads = sysconf(_SC_NPROCESSORS_ONLN); // does not work in Linux LXC container
-    assert(nThreads);
-#else
-    cpu_set_t set;
-    if (pthread_getaffinity_np(pthread_self(), sizeof(set), &set) == 0)
-      nThreads = CPU_COUNT(&set);
-#endif
-    
-    assert(nThreads);
-    return nThreads;
-  }
-
   int getTerminalWidth() 
   {
     struct winsize info;

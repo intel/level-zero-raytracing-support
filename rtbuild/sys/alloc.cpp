@@ -167,37 +167,6 @@ namespace embree
 
 namespace embree
 {
-  bool win_enable_selockmemoryprivilege (bool verbose)
-  {
-    HANDLE hToken;
-    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES, &hToken)) {
-      if (verbose) std::cout << "WARNING: OpenProcessToken failed while trying to enable SeLockMemoryPrivilege: " << GetLastError() << std::endl;
-      return false;
-    }
-
-    TOKEN_PRIVILEGES tp;
-    tp.PrivilegeCount = 1;
-    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-    if (!LookupPrivilegeValueW(nullptr, L"SeLockMemoryPrivilege", &tp.Privileges[0].Luid)) {
-      if (verbose) std::cout << "WARNING: LookupPrivilegeValue failed while trying to enable SeLockMemoryPrivilege: " << GetLastError() << std::endl;
-      return false;
-    }
-    
-    SetLastError(ERROR_SUCCESS);
-    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), nullptr, 0)) {
-      if (verbose) std::cout << "WARNING: AdjustTokenPrivileges failed while trying to enable SeLockMemoryPrivilege" << std::endl;
-      return false;
-    }
-    
-    if (GetLastError() == ERROR_NOT_ALL_ASSIGNED) {
-      if (verbose) std::cout << "WARNING: AdjustTokenPrivileges failed to enable SeLockMemoryPrivilege: Add SeLockMemoryPrivilege for current user and run process in elevated mode (Run as administrator)." << std::endl;
-      return false;
-    } 
-
-    return true;
-  }
-
   void* os_malloc(size_t bytes, bool& hugepages)
   {
     if (bytes == 0) {
