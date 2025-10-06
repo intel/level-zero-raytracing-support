@@ -51,8 +51,9 @@ jobs:
         tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
         cd intel-level-zero-gpu-raytracing*.x86_64.linux
         ./run.sh
+        ./run_ext.sh
         cd bin
-        ctest
+        ctest -VV
 
   ze_raytracing-linux-DPCPP-test-PVC:
     secrets: inherit
@@ -69,8 +70,9 @@ jobs:
         tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
         cd intel-level-zero-gpu-raytracing*.x86_64.linux
         ./run.sh
+        ./run_ext.sh
         cd bin
-        ctest
+        ctest -VV
 
   ze_raytracing-linux-ICX-test:
     secrets: inherit
@@ -102,8 +104,9 @@ jobs:
         tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
         cd intel-level-zero-gpu-raytracing*.x86_64.linux
         ./run.sh
+        ./run_ext.sh
         cd bin
-        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:. ctest
+        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:. ctest -VV
 
   ze_raytracing-linux-ICX-test-level-zero:
     secrets: inherit
@@ -201,7 +204,7 @@ jobs:
         .\run.bat
         if ($LASTEXITCODE -ne 0) { throw "Command failed" }
         cd bin
-        ctest
+        ctest -VV
         if ($LASTEXITCODE -ne 0) { throw "Command failed" }
 
   ze_raytracing-windows-test-level-zero:

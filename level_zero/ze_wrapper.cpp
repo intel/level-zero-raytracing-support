@@ -201,7 +201,8 @@ ze_result_t selectInternalRTASBuilder()
   zeDriverRTASFormatCompatibilityCheckExpInternal = &zeDriverRTASFormatCompatibilityCheckExpImpl;
   zeRTASBuilderGetBuildPropertiesExpInternal = &zeRTASBuilderGetBuildPropertiesExpImpl;
   zeRTASBuilderBuildExpInternal = &zeRTASBuilderBuildExpImpl;
-  
+  zeRTASBuilderCommandListAppendCopyExtInternal = zeCommandListAppendMemoryCopyInternal;
+   
   zeRTASParallelOperationCreateExpInternal = &zeRTASParallelOperationCreateExpImpl;
   zeRTASParallelOperationDestroyExpInternal = &zeRTASParallelOperationDestroyExpImpl;
   zeRTASParallelOperationGetPropertiesExpInternal = &zeRTASParallelOperationGetPropertiesExpImpl;

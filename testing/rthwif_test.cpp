@@ -2276,6 +2276,9 @@ int main(int argc, char* argv[]) try
 #if defined(ZE_RAYTRACING_RT_SIMULATION)
   RTCore::Cleanup();
 #endif
+
+  if (numErrors == 0) std::cout << "[PASSED]" << std::endl;
+  else                std::cout << "[FAILED]" << std::endl;
   
   return numErrors ? 1 : 0;
 }

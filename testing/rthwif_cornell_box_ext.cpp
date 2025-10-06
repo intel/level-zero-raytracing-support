@@ -475,6 +475,8 @@ void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, 
     /* command list codepath */
     if (std::holds_alternative<ze_command_list_handle_t>(hQueue))
     {
+       std::cout << "using ze_command_list_handle_t to copy RTAS" << std::endl;
+       
       ze_command_list_handle_t hCommandList = std::get<ze_command_list_handle_t>(hQueue);
       
       err = ZeWrapper::zeRTASBuilderCommandListAppendCopyExt(hCommandList, accelDevice, accelHost, accelBytes, hEvent, 0, nullptr);
@@ -492,6 +494,8 @@ void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, 
     /* command queue codepath */
     else
     {
+      std::cout << "using ze_command_queue_handle_t to copy RTAS" << std::endl;
+       
       ze_command_queue_handle_t hCommandQueue = std::get<ze_command_queue_handle_t>(hQueue);
       
       ze_command_list_handle_t hCommandList = nullptr;
@@ -815,8 +819,8 @@ int main(int argc, char* argv[]) try
   /* compare to reference image */
   const size_t err = compareTga("cornell_box.tga", "cornell_box_reference.tga");
   std::cout << "difference to reference image is " << err << std::endl;
+  
   const bool ok = err < 32;
-  std::cout << "cornell_box ";
   if (ok) std::cout << "[PASSED]" << std::endl;
   else    std::cout << "[FAILED]" << std::endl;
 
