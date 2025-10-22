@@ -13,29 +13,39 @@ SET(TBB_DIR OFF)
 SET(BUILD_SHARED_LIBS OFF)
 
 IF (EXISTS ${PROJECT_SOURCE_DIR}/tbb)
-  add_subdirectory(${PROJECT_SOURCE_DIR}/tbb ${CMAKE_BINARY_DIR}/tbb EXCLUDE_FROM_ALL)
+  IF (NOT ZE_RAYTRACING_TBB_HEADER)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/tbb ${CMAKE_BINARY_DIR}/tbb EXCLUDE_FROM_ALL)
+  ELSE()
+    SET(ZE_RAYTRACING_TBB_HEADER_DIR "${PROJECT_SOURCE_DIR}/tbb/include")
+  ENDIF()
 ELSE()
 
 INCLUDE(FetchContent)
 
 SET(FETCHCONTENT_QUIET OFF)
 
-IF (NOT EMBREE_RTHWIF_TBB_GIT_REPOSITORY) # allow setting this externally
-  SET(EMBREE_RTHWIF_TBB_GIT_REPOSITORY "https://github.com/oneapi-src/oneTBB.git")
+IF (NOT ZE_RAYTRACING_TBB_GIT_REPOSITORY) # allow setting this externally
+  SET(ZE_RAYTRACING_TBB_GIT_REPOSITORY "https://github.com/oneapi-src/oneTBB.git")
 ENDIF()
+
+SET(ZE_RAYTRACING_TBB_VERSION v2021.6.0 CACHE STRING "TBB version to download and link to.") 
 
 FetchContent_Declare(
   tbb_static
-  GIT_REPOSITORY ${EMBREE_RTHWIF_TBB_GIT_REPOSITORY}
-  GIT_TAG v2021.6.0
-  )
+  GIT_REPOSITORY ${ZE_RAYTRACING_TBB_GIT_REPOSITORY}
+  GIT_TAG ${ZE_RAYTRACING_TBB_VERSION}
+)
 
 FetchContent_GetProperties(tbb_static)
 if(NOT tbb_static_POPULATED)
   FetchContent_Populate(tbb_static)
   # We want to build tbb_static to link it into embree_rthwif, but don't want to
   # install it as part of the Embree install targets.
-  add_subdirectory(${tbb_static_SOURCE_DIR} ${tbb_static_BINARY_DIR} EXCLUDE_FROM_ALL)
+  IF (NOT ZE_RAYTRACING_TBB_HEADER)
+    add_subdirectory(${tbb_static_SOURCE_DIR} ${tbb_static_BINARY_DIR} EXCLUDE_FROM_ALL)
+  ELSE()
+    SET(ZE_RAYTRACING_TBB_HEADER_DIR ${tbb_static_SOURCE_DIR}/include)
+  ENDIF()
 endif()
 
 ENDIF()

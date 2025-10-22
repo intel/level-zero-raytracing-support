@@ -83,6 +83,38 @@ cd build
 ctest
 ```
 
+By default ZE_RAYTRACING_TBB_STATIC is turned on, which will fetch TBB and link it statically. You can specify which TBB version to use by setting the ZE_RAYTRACING_TBB_VERSION cmake variable.
+
+You can also avoid the TBB download by putting your own TBB sources into a folder called tbb in the main repository folder, which will cause these TBB sources to be used.
+
+```
+cp -r tbb-src tbb
+cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_STATIC=ON .
+cmake --build build --target package
+```
+
+If you do not want to link TBB statically, but link against the system provided TBB version disable ZE_RAYTRACING_TBB_STATIC:
+
+```
+cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_STATIC=OFF .
+cmake --build build --target package
+```
+
+Linking against new TBB versions will cause the library to use new TBB symbols, making it incompatible with older TBB versions. This has been an issue with applications that ship with an older TBB version. To have the library be compatible with older TBB versions you can download and use older TBB headers by enabling ZE_RAYTRACING_TBB_HEADER and setting the TBB version ZE_RAYTRACING_TBB_VERSION:
+
+```
+cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_HEADER=ON -D ZE_RAYTRACING_TBB_VERSION=v2021.6.0 .
+cmake --build build --target package
+```
+
+You can also provide your own TBB headers in a folder called tbb, which will cause these headers to be used:
+
+```
+cp -r tbb-headers tbb
+cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB_STATIC=OFF .
+cmake --build build --target package
+```
+
 
 ## Linking applications
 
