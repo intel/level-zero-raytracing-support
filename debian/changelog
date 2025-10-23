@@ -1,3 +1,9 @@
+intel-level-zero-gpu-raytracing (1.2.1) UNRELEASED; urgency=medium
+
+  * Added support to specify TBB headers to use for compilation
+
+  -- Sven Woop <sven.woop@intel.com> Thu Oct 23 09:41:00 AM CEST 2025
+
 intel-level-zero-gpu-raytracing (1.2.0) UNRELEASED; urgency=medium
 
   * Added support for Level Zero Extension ZE_extension_rtas

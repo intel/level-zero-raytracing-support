@@ -1,6 +1,9 @@
 Version History
 ---------------
 
+### oneAPI Level Zero Ray Tracing Support 1.2.1
+- Added support to specify TBB headers to use for compilation
+
 ### oneAPI Level Zero Ray Tracing Support 1.2.0
 - Added support for Level Zero Extension ZE_extension_rtas
 - Updated to Level Zero API header 1.13.1
