@@ -4,6 +4,10 @@
 ####################################################################
 # fetch TBB and build static version of it
 
+IF (NOT ZE_RAYTRACING_TBB_GIT_REPOSITORY) # allow setting this externally
+  SET(ZE_RAYTRACING_TBB_GIT_REPOSITORY "https://github.com/oneapi-src/oneTBB.git")
+ENDIF()
+
 IF (WIN32)
   option(TBB_STRICT "Treat compiler warnings as errors" OFF)
 ENDIF()
@@ -12,23 +16,25 @@ option(TBBMALLOC_BUILD "Enable tbbmalloc build" OFF)
 SET(TBB_DIR OFF)
 SET(BUILD_SHARED_LIBS OFF)
 
+# handle tbb directory with highest priority
 IF (EXISTS ${PROJECT_SOURCE_DIR}/tbb)
-  IF (NOT ZE_RAYTRACING_TBB_HEADER)
+  IF (NOT TBB_HEADER)
     add_subdirectory(${PROJECT_SOURCE_DIR}/tbb ${CMAKE_BINARY_DIR}/tbb EXCLUDE_FROM_ALL)
   ELSE()
     SET(ZE_RAYTRACING_TBB_HEADER_DIR "${PROJECT_SOURCE_DIR}/tbb/include")
   ENDIF()
+
+# next check if TBB headers are to be used and are present
+ELSEIF (TBB_HEADER AND EXISTS ${PROJECT_SOURCE_DIR}/external/tbb/${ZE_RAYTRACING_TBB_VERSION})
+  MESSAGE(STATUS "Headers for TBB ${ZE_RAYTRACING_TBB_VERSION} are available.")
+  SET(ZE_RAYTRACING_TBB_HEADER_DIR "${PROJECT_SOURCE_DIR}/external/tbb/${ZE_RAYTRACING_TBB_VERSION}/include") 
+
+# otherwise download TBB
 ELSE()
 
 INCLUDE(FetchContent)
 
 SET(FETCHCONTENT_QUIET OFF)
-
-IF (NOT ZE_RAYTRACING_TBB_GIT_REPOSITORY) # allow setting this externally
-  SET(ZE_RAYTRACING_TBB_GIT_REPOSITORY "https://github.com/oneapi-src/oneTBB.git")
-ENDIF()
-
-SET(ZE_RAYTRACING_TBB_VERSION v2021.6.0 CACHE STRING "TBB version to download and link to.") 
 
 FetchContent_Declare(
   tbb_static
@@ -41,7 +47,7 @@ if(NOT tbb_static_POPULATED)
   FetchContent_Populate(tbb_static)
   # We want to build tbb_static to link it into embree_rthwif, but don't want to
   # install it as part of the Embree install targets.
-  IF (NOT ZE_RAYTRACING_TBB_HEADER)
+  IF (NOT TBB_HEADER)
     add_subdirectory(${tbb_static_SOURCE_DIR} ${tbb_static_BINARY_DIR} EXCLUDE_FROM_ALL)
   ELSE()
     SET(ZE_RAYTRACING_TBB_HEADER_DIR ${tbb_static_SOURCE_DIR}/include)

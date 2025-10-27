@@ -83,25 +83,44 @@ CONFIGURE_FILE(
   "${PROJECT_SOURCE_DIR}/level_zero_raytracing.rc"
 )
 
-# we support building TBB statically
-OPTION(ZE_RAYTRACING_TBB_STATIC "Download, build, and link statically to TBB" ON)
-OPTION(ZE_RAYTRACING_TBB_HEADER "Download TBB and compile with downloaded TBB headers" OFF)
-IF (ZE_RAYTRACING_TBB_STATIC OR ZE_RAYTRACING_TBB_HEADER)
+# default TBB mode
+SET(ZE_RAYTRACING_TBB_DEFAULT "build_static")
+
+# still support ZE_RAYTRACING_TBB_STATIC if defined
+IF (DEFINED ZE_RAYTRACING_TBB_STATIC)
+  IF(ZE_RAYTRACING_TBB_STATIC)
+    SET(ZE_RAYTRACING_TBB_DEFAULT "build_static")
+  ELSE()
+    SET(ZE_RAYTRACING_TBB_DEFAULT "normal")
+  ENDIF()
+ENDIF()
+
+# TBB mode configuration
+SET(ZE_RAYTRACING_TBB ${ZE_RAYTRACING_TBB_DEFAULT} CACHE
+  STRING "Configures how to use TBB: build_static builds specified TBB version and links statically, inject_headers uses headers of specified TBB version, and normal links against system provided TBB)")
+SET_PROPERTY(CACHE ZE_RAYTRACING_TBB PROPERTY STRINGS "build_static" "inject_header" "normal")
+SET(ZE_RAYTRACING_TBB_VERSION v2021.6.0 CACHE STRING "TBB version to use.") 
+
+IF (ZE_RAYTRACING_TBB STREQUAL "build_static")
+  SET(TBB_STATIC ON)
+  SET(TBB_HEADER OFF)
+ELSEIF (ZE_RAYTRACING_TBB STREQUAL "inject_headers")
+  SET(TBB_STATIC OFF)
+  SET(TBB_HEADER ON)
+ELSEIF (ZE_RAYTRACING_TBB STREQUAL "normal")
+  SET(TBB_STATIC OFF)
+  SET(TBB_HEADER OFF)
+ELSE()
+  MESSAGE(FATAL_ERROR "Unknown TBB mode ${ZE_RAYTRACING_TBB}")
+ENDIF()
+
+IF (TBB_STATIC OR TBB_HEADER)
   INCLUDE(fetchtbb)
 ENDIF()
-IF (NOT ZE_RAYTRACING_TBB_STATIC OR ZE_RAYTRACING_TBB_HEADER)
+IF (NOT TBB_STATIC)
   FIND_PACKAGE(TBB REQUIRED)
 ENDIF()
 ADD_DEFINITIONS(-DTASKING_TBB)
-
-# if tbb directory exists use provided headers by default
-IF (NOT ZE_RAYTRACING_TBB_STATIC)
-  IF (EXISTS ${PROJECT_SOURCE_DIR}/tbb/include)
-    SET(ZE_RAYTRACING_TBB_HEADER_DIR "${PROJECT_SOURCE_DIR}/tbb/include")
-  ELSEIF (EXISTS ${PROJECT_SOURCE_DIR}/tbb)
-    SET(ZE_RAYTRACING_TBB_HEADER_DIR "${PROJECT_SOURCE_DIR}/tbb")
-  ENDIF()
-ENDIF()
 
 # add path to TBB headers to use for compilation
 IF (ZE_RAYTRACING_TBB_HEADER_DIR)
