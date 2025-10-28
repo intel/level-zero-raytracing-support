@@ -1,5 +1,7 @@
 Version History
 ---------------
+### oneAPI Level Zero Ray Tracing Support 1.2.2
+- Added headers for TBB 2021.6.0 and avoiding fetching headers of that TBB version.
 
 ### oneAPI Level Zero Ray Tracing Support 1.2.1
 - Added support to specify TBB headers to use for compilation

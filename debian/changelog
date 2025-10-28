@@ -1,3 +1,10 @@
+
+intel-level-zero-gpu-raytracing (1.2.2) UNRELEASED; urgency=medium
+
+  * Added headers for TBB 2021.6.0 and avoiding fetching headers of that TBB version.
+
+  -- Sven Woop <sven.woop@intel.com> Tue Oct 28 09:41:11 AM CET 2025
+
 intel-level-zero-gpu-raytracing (1.2.1) UNRELEASED; urgency=medium
 
   * Added support to specify TBB headers to use for compilation
