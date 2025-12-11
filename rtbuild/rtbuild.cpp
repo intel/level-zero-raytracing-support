@@ -11,8 +11,12 @@ namespace embree
 {
   using namespace embree::isa;
 
-  static tbb::task_arena g_arena(tbb::this_task_arena::max_concurrency(),tbb::this_task_arena::max_concurrency());
-  
+  // Lazy initialization due to static initialization order fiasco
+  static tbb::task_arena& get_arena() {
+      static tbb::task_arena arena(tbb::this_task_arena::max_concurrency(), tbb::this_task_arena::max_concurrency());
+      return arena;
+  }
+
   inline ze_rtas_triangle_indices_uint32_exp_t getPrimitive(const ze_rtas_builder_triangles_geometry_info_exp_t* geom, uint32_t primID) {
     assert(primID < geom->triangleCount);
     return *(ze_rtas_triangle_indices_uint32_exp_t*)((char*)geom->pTriangleBuffer + uint64_t(primID)*geom->triangleStride);
@@ -686,7 +690,7 @@ namespace embree
       
       op->object_in_use.store(true);
       
-      g_arena.execute([&](){ op->group.run([=](){
+      get_arena().execute([&](){ op->group.run([=](){
         op->errorCode = zeRTASBuilderBuildBody(aty,args,
                                                        pScratchBuffer, scratchBufferSizeBytes,
                                                        pRtasBuffer, rtasBufferSizeBytes,
@@ -699,7 +703,7 @@ namespace embree
     else
     {
       ze_result_t errorCode = ZE_RESULT_SUCCESS;
-      g_arena.execute([&](){ errorCode = zeRTASBuilderBuildBody(aty,args,
+      get_arena().execute([&](){ errorCode = zeRTASBuilderBuildBody(aty,args,
                                                                         pScratchBuffer, scratchBufferSizeBytes,
                                                                         pRtasBuffer, rtasBufferSizeBytes,
                                                                         pBuildUserPtr, pBounds, pRtasBufferSizeBytes);
@@ -751,7 +755,7 @@ namespace embree
     VALIDATE(aty,hParallelOperation);
     
     ze_rtas_parallel_operation_t* op = (ze_rtas_parallel_operation_t*) hParallelOperation;
-    g_arena.execute([&](){ op->group.wait(); });
+    get_arena().execute([&](){ op->group.wait(); });
     op->object_in_use.store(false); // this is slighty too early
     return op->errorCode;
   }
