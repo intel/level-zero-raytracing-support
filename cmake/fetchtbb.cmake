@@ -45,6 +45,16 @@ FetchContent_Declare(
 FetchContent_GetProperties(tbb_static)
 if(NOT tbb_static_POPULATED)
   FetchContent_Populate(tbb_static)
+
+  # patch clang.cmake after fetch as WA for https://github.com/uxlfoundation/oneTBB/issues/1741
+  if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND 
+     ZE_RAYTRACING_TBB_VERSION VERSION_GREATER_EQUAL "v2021.10.0" AND
+     ZE_RAYTRACING_TBB_VERSION VERSION_LESS_EQUAL "v2022.3.0")
+    file(READ "${tbb_static_SOURCE_DIR}/cmake/compilers/Clang.cmake" TBB_CLANG_CONTENT)
+    string(REPLACE "-fPIC" "" TBB_CLANG_CONTENT "${TBB_CLANG_CONTENT}")
+    file(WRITE "${tbb_static_SOURCE_DIR}/cmake/compilers/Clang.cmake" "${TBB_CLANG_CONTENT}")
+  endif()
+
   # We want to build tbb_static to link it into embree_rthwif, but don't want to
   # install it as part of the Embree install targets.
   IF (NOT TBB_HEADER)

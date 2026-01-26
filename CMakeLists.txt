@@ -99,7 +99,7 @@ ENDIF()
 SET(ZE_RAYTRACING_TBB ${ZE_RAYTRACING_TBB_DEFAULT} CACHE
   STRING "Configures how to use TBB: build_static builds specified TBB version and links statically, inject_headers uses headers of specified TBB version, and normal links against system provided TBB)")
 SET_PROPERTY(CACHE ZE_RAYTRACING_TBB PROPERTY STRINGS "build_static" "inject_header" "normal")
-SET(ZE_RAYTRACING_TBB_VERSION v2021.6.0 CACHE STRING "TBB version to use.") 
+SET(ZE_RAYTRACING_TBB_VERSION v2022.3.0 CACHE STRING "TBB version to use.") 
 
 IF (ZE_RAYTRACING_TBB STREQUAL "build_static")
   SET(TBB_STATIC ON)
