@@ -59,6 +59,13 @@ if(NOT tbb_static_POPULATED)
   # install it as part of the Embree install targets.
   IF (NOT TBB_HEADER)
     add_subdirectory(${tbb_static_SOURCE_DIR} ${tbb_static_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+    # Suppress stringop-overflow warnings for TBB build
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      target_compile_options(tbb PRIVATE
+        $<$<CXX_COMPILER_ID:GNU>:-Wno-stringop-overflow>
+      )
+    endif()
   ELSE()
     SET(ZE_RAYTRACING_TBB_HEADER_DIR ${tbb_static_SOURCE_DIR}/include)
   ENDIF()
