@@ -37,6 +37,7 @@ jobs:
         cmake --build . --config ReleaseInternal --target package
 
   source-code-analysis:
+    secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/source_analysis.yml@main
     with:
       project-name: c_levelzeroraytracingsupport_26693
