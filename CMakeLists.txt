@@ -99,7 +99,7 @@ ENDIF()
 SET(ZE_RAYTRACING_TBB ${ZE_RAYTRACING_TBB_DEFAULT} CACHE
   STRING "Configures how to use TBB: build_static builds specified TBB version and links statically, inject_headers uses headers of specified TBB version, and normal links against system provided TBB)")
 SET_PROPERTY(CACHE ZE_RAYTRACING_TBB PROPERTY STRINGS "build_static" "inject_header" "normal")
-SET(ZE_RAYTRACING_TBB_VERSION v2022.3.0 CACHE STRING "TBB version to use.") 
+SET(ZE_RAYTRACING_DEFAULT_TBB_VERSION v2022.3.0)
 
 IF (ZE_RAYTRACING_TBB STREQUAL "build_static")
   SET(TBB_STATIC ON)
@@ -107,6 +107,7 @@ IF (ZE_RAYTRACING_TBB STREQUAL "build_static")
 ELSEIF (ZE_RAYTRACING_TBB STREQUAL "inject_headers")
   SET(TBB_STATIC OFF)
   SET(TBB_HEADER ON)
+  SET(ZE_RAYTRACING_DEFAULT_TBB_VERSION v2021.6.0)  # headers of that version are included
 ELSEIF (ZE_RAYTRACING_TBB STREQUAL "normal")
   SET(TBB_STATIC OFF)
   SET(TBB_HEADER OFF)
@@ -114,11 +115,27 @@ ELSE()
   MESSAGE(FATAL_ERROR "Unknown TBB mode ${ZE_RAYTRACING_TBB}")
 ENDIF()
 
+SET(ZE_RAYTRACING_TBB_VERSION ${ZE_RAYTRACING_DEFAULT_TBB_VERSION} CACHE STRING "TBB version to use.") 
+
 IF (TBB_STATIC OR TBB_HEADER)
   INCLUDE(fetchtbb)
 ENDIF()
 IF (NOT TBB_STATIC)
-  FIND_PACKAGE(TBB REQUIRED)
+  FIND_PACKAGE(TBB)
+  
+  IF (NOT TBB_FOUND)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(TBB REQUIRED tbb)
+    IF(NOT TARGET TBB::tbb)
+        add_library(TBB::tbb INTERFACE IMPORTED)
+        target_link_libraries(TBB::tbb INTERFACE ${TBB_LIBRARIES})
+        target_include_directories(TBB::tbb INTERFACE ${TBB_INCLUDE_DIRS})
+        set(TBB_VERSION ${TBB_VERSION})
+    ENDIF()
+ENDIF()
+
+message(STATUS "Found TBB version: ${TBB_VERSION}")
+
 ENDIF()
 ADD_DEFINITIONS(-DTASKING_TBB)
 

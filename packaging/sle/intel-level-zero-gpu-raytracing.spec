@@ -47,7 +47,8 @@ directly.
 %build
 %cmake .. \
    -DCMAKE_BUILD_TYPE=Release \
-   -DCMAKE_INSTALL_PREFIX=/usr
+   -DCMAKE_INSTALL_PREFIX=/usr \
+   -DZE_RAYTRACING_TBB=build_static
 
 %make_build
 

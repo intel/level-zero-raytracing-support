@@ -12,7 +12,8 @@ License: Apache2
 URL: https://github.com/oneapi-src/level-zero-raytracing
 Source0: %{url}/archive/%{ver}/intel-level-zero-gpu-raytracing-%{ver}.tar.gz
 
-BuildRequires: make gcc-c++ cmake ninja-build git pkg-config
+BuildRequires: make gcc-c++ cmake ninja-build git pkg-config tbb-devel
+Requires: tbb
 
 %description
 A library that provides high-performance CPU-based construction algorithms for
@@ -31,7 +32,8 @@ mkdir build
 cd build
 %cmake .. \
    -DCMAKE_BUILD_TYPE=Release \
-   -DCMAKE_INSTALL_PREFIX=/usr
+   -DCMAKE_INSTALL_PREFIX=/usr \
+   -DZE_RAYTRACING_TBB=inject_headers
 
 %make_build
 

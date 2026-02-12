@@ -7,7 +7,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DZE_RAYTRACING_TBB_STATIC=OFF
+		-DZE_RAYTRACING_TBB=inject_headers
 
 override_dh_auto_clean:
 	dh_auto_clean
