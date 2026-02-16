@@ -15,7 +15,7 @@
 # Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 #it's changed by external script
-%global ver 1.2.2
+%global ver 1.2.3
 %global rel 1
 
 Name: intel-level-zero-gpu-raytracing
@@ -67,6 +67,10 @@ cd build
 %doc
 
 %changelog
+* Mon Feb 16 2026 Sven Woop <sven.woop@intel.com> - 1.2.3
+- Updating default TBB version for static TBB build to v2022.3.0.
+- Fixed potential global variable initialization order issue when linking TBB statically.
+- Moved packaging files to separate packaging folder.
 * Thu Oct 28 2025 Sven Woop <sven.woop@intel.com> - 1.2.2
 - Added headers for TBB 2021.6.0 and avoiding fetching headers of that TBB version.
 * Thu Oct 23 2025 Sven Woop <sven.woop@intel.com> - 1.2.1

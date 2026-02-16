@@ -1,4 +1,12 @@
 
+intel-level-zero-gpu-raytracing (1.2.3) UNRELEASED; urgency=medium
+
+  * Updating default TBB version for static TBB build to v2022.3.0.
+  * Fixed potential global variable initialization order issue when linking TBB statically.
+  * Moved packaging files to separate packaging folder.
+
+  -- Sven Woop <sven.woop@intel.com> Mon Feb 16 07:08:50 AM CET 2026
+
 intel-level-zero-gpu-raytracing (1.2.2) UNRELEASED; urgency=medium
 
   * Added headers for TBB 2021.6.0 and avoiding fetching headers of that TBB version.

@@ -1,5 +1,11 @@
 Version History
 ---------------
+
+### oneAPI Level Zero Ray Tracing Support 1.2.3
+- Updating default TBB version for static TBB build to v2022.3.0.
+- Fixed potential global variable initialization order issue when linking TBB statically.
+- Moved packaging files to separate packaging folder.
+
 ### oneAPI Level Zero Ray Tracing Support 1.2.2
 - Added headers for TBB 2021.6.0 and avoiding fetching headers of that TBB version.
 
