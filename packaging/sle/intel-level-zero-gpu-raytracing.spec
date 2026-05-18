@@ -15,7 +15,7 @@
 # Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 #it's changed by external script
-%global ver 1.2.3
+%global ver 1.2.4
 %global rel 1
 
 Name: intel-level-zero-gpu-raytracing
@@ -67,6 +67,8 @@ cd build
 %doc
 
 %changelog
+* Mon May 18 2026 Sven Woop <sven.woop@intel.com> - 1.2.4
+- Fixed crash in high quality RTAS build over instances when using device memory.
 * Mon Feb 16 2026 Sven Woop <sven.woop@intel.com> - 1.2.3
 - Updating default TBB version for static TBB build to v2022.3.0.
 - Fixed potential global variable initialization order issue when linking TBB statically.

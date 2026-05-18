@@ -1,3 +1,10 @@
+
+intel-level-zero-gpu-raytracing (1.2.4) UNRELEASED; urgency=medium
+
+  * Fixed crash in high quality RTAS build over instances when using device memory.
+
+ -- Sven Woop <sven.woop@intel.com>  Mon, 18 May 2026 09:11:00 +0100
+
 intel-level-zero-gpu-raytracing (1.2.3) UNRELEASED; urgency=medium
 
   * Updating default TBB version for static TBB build to v2022.3.0.

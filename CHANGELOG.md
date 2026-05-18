@@ -1,6 +1,9 @@
 Version History
 ---------------
 
+### oneAPI Level Zero Ray Tracing Support 1.2.4
+- Fixed crash in high quality RTAS build over instances when using device memory.
+
 ### oneAPI Level Zero Ray Tracing Support 1.2.3
 - Updating default TBB version for static TBB build to v2022.3.0.
 - Fixed potential global variable initialization order issue when linking TBB statically.
