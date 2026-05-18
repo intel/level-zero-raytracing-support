@@ -946,76 +946,6 @@ namespace embree
           }
         }
 
-        void openInstance(const PrimRef& prim,
-                          const unsigned int splitprims,
-                          PrimRef subPrims[MAX_PRESPLITS_PER_PRIMITIVE],
-                          unsigned int& numSubPrims)
-        {
-          struct Item
-          {
-            QBVH6::InternalNode6* node;
-            float priority;
-
-            Item () {}
-            
-            Item (QBVH6::InternalNode6* node)
-              : node(node), priority(halfArea(node->bounds()))
-            {
-              /* fat leaves cannot get opened */
-              if (node->isFatLeaf())
-                priority = 0.0f;
-            }
-
-            inline bool operator< ( const Item& other) const {
-              return priority < other.priority;
-            }
-          };
-          
-          const uint32_t targetSubPrims = splitprims;
-          const uint32_t geomID = prim.geomID();
-          const uint32_t primID MAYBE_UNUSED = prim.primID();
-          assert(primID == 0); // has to be zero as we encode root offset here
-
-          const Instance instance = getInstance(geomID,0);
-          QBVH6::InternalNode6* root = static_cast<QBVH6*>(instance.accel)->root().innerNode<QBVH6::InternalNode6>();
-          
-          darray_t<Item,MAX_PRESPLITS_PER_PRIMITIVE> heap;
-          heap.push_back(root);
-
-          while (heap.size() + (QBVH6::InternalNode6::NUM_CHILDREN-1) <= MAX_PRESPLITS_PER_PRIMITIVE)
-          {
-            /* terminate when budget exceeded */
-            if (heap.size() >= targetSubPrims)
-              break;
-
-            /* get top heap element */
-            std::pop_heap(heap.begin(), heap.end());
-            auto top = heap.back();
-
-            /* if that happens there are only leaf nodes left that cannot get opened */
-            if (top.priority == 0.0f) break;
-            heap.pop_back();
-
-            /* add all children to the heap */
-            for (uint32_t i=0; i<QBVH6::InternalNode6::NUM_CHILDREN; i++)
-            {
-              if (!top.node->valid(i)) continue;
-              heap.push_back(top.node->child(i).template innerNode<QBVH6::InternalNode6>());
-              std::push_heap(heap.begin(), heap.end());
-            }
-          }
-
-          /* create primrefs */
-          for (size_t i=0; i<heap.size(); i++)
-          {
-            QBVH6::InternalNode6* node = heap[i].node;
-            BBox3fa bounds = xfmBounds(instance.local2world,node->bounds());
-            int64_t ofs = ((int64_t)node-(int64_t)root)/64;
-            assert(ofs >= INT_MIN && ofs <= INT_MAX);
-            subPrims[numSubPrims++] = PrimRef(bounds,geomID,(int32_t)ofs);
-          }
-        }
-
         float primitiveAreaTrianglePair(const PrimRef& prim)
         {
           const uint32_t geomID = prim.geomID();
@@ -1044,17 +974,12 @@ namespace embree
           return A0+A1;
         }
 
-        float primitiveAreaInstance(const PrimRef& prim) {
-          return halfArea(prim.bounds());
-        }
-
-        float primitiveArea(const PrimRef& prim)
+        float splitPrimitiveArea(const PrimRef& prim)
         {
           switch (getType(prim.geomID())) {
           case TRIANGLE: return primitiveAreaTrianglePair(prim);
           case QUAD    : return primitiveAreaQuad(prim);
-          case INSTANCE: return primitiveAreaInstance(prim);
-          default      : return 0.0f;
+          default      : return 0.0f;  // 0 indicates that primitive is ignored by pre-splitting
           }
         }
 
@@ -1120,18 +1045,14 @@ namespace embree
                                   PrimRef subPrims[MAX_PRESPLITS_PER_PRIMITIVE],
                                   unsigned int& numSubPrims)
             {
-              if (getType(prim.geomID()) == QBVH6BuilderSAH::INSTANCE) {
-                openInstance(prim,splitprims,subPrims,numSubPrims);
-              } else {
-                splitPrimitive(splitter,prim,splitprims,grid,subPrims,numSubPrims);
-              }
+              splitPrimitive(splitter,prim,splitprims,grid,subPrims,numSubPrims);
             };
 
-            auto primitiveArea1 = [this] (const PrimRef& prim) -> float {
-              return primitiveArea(prim);
+            auto splitPrimitiveArea1 = [this] (const PrimRef& prim) -> float {
+              return splitPrimitiveArea(prim);
             };
             
-            pinfo = createPrimRefArray_presplit(numPrimitives, prims, pinfo, splitter1, primitiveArea1);
+            pinfo = createPrimRefArray_presplit(numPrimitives, prims, pinfo, splitter1, splitPrimitiveArea1);
           }
 
           /* exit early if scene is empty */
@@ -1180,7 +1101,7 @@ namespace embree
           size_t worstCaseBytes = stats.worst_case_bvh_bytes();
           if (accelBufferBytesOut) *accelBufferBytesOut = std::min(std::max(bytes+64,size_t(1.2*bytes)), worstCaseBytes);
 
-          prims.resize(numPrimitives);
+          prims.resize(numPrimitives); // FIXME: this does not apply spatial split budget, triangles do agressive presplitting because of quadification
           
           double t1 = verbose ? getSeconds() : 0.0;
           if (verbose) std::cout << "scene_size   : " << std::setw(10) << (t1-t0)*1000.0 << "ms" << std::endl;
@@ -1189,7 +1110,7 @@ namespace embree
           BBox3f bounds = empty;
 
           if (verbose) std::cout << "trying BVH build with " << bytes << " bytes" << std::endl;
-            
+
           /* allocate BVH memory */
           allocator.init(accel,bytes);
           allocator.malloc(128); // header
