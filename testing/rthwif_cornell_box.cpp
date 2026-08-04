@@ -363,8 +363,7 @@ void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, 
   ze_driver_handle_t hDriver = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device.get_platform());
   ze_device_handle_t hDevice = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
   ze_context_handle_t hContext = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(context);
-  auto hQueue = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(queue);
-    
+      
   /* create rtas builder object */
   ze_rtas_builder_exp_desc_t builderDesc = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXP_DESC };
   ze_rtas_builder_exp_handle_t hBuilder = nullptr;
@@ -467,6 +466,8 @@ void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, 
   /* copy host buffer to device memory */
   if (use_device_memory)
   {
+    auto hQueue = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(queue);
+    
     sycl::event event = sycl::event();
     ze_event_handle_t hEvent = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(event);
 
