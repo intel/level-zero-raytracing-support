@@ -470,42 +470,41 @@ void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, 
   {
     auto hQueue = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(queue);
     
-    sycl::event event = sycl::event();
-    ze_event_handle_t hEvent = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(event);
-
     /* command list codepath */
     if (std::holds_alternative<ze_command_list_handle_t>(hQueue))
     {
-       std::cout << "using ze_command_list_handle_t to copy RTAS" << std::endl;
-       
+      std::cout << "using ze_command_list_handle_t to copy RTAS" << std::endl;
       ze_command_list_handle_t hCommandList = std::get<ze_command_list_handle_t>(hQueue);
-      
-      err = ZeWrapper::zeRTASBuilderCommandListAppendCopyExt(hCommandList, accelDevice, accelHost, accelBytes, hEvent, 0, nullptr);
-      if (err != ZE_RESULT_SUCCESS)
-        throw std::runtime_error("zeRTASBuilderCommandListAppendCopyExt failed");
 
-      /* this is required for some reason */
-      queue.submit([&](sycl::handler& cgh) {
-        cgh.single_task([=]() {});
+      sycl::event event = queue.submit([&](sycl::handler& cgh) {
+        cgh.host_task([=](sycl::interop_handle ih) {
+          //auto hNative = ih.get_native_queue<sycl::backend::ext_oneapi_level_zero>();
+          //ze_command_list_handle_t hCommandList = std::get<ze_command_list_handle_t>(hNative);
+          ze_result_t err = ZeWrapper::zeRTASBuilderCommandListAppendCopyExt(
+            hCommandList, accelDevice, accelHost, accelBytes,
+            nullptr, 0, nullptr
+          );
+          if (err != ZE_RESULT_SUCCESS)
+            throw std::runtime_error("zeRTASBuilderCommandListAppendCopyExt failed");
+        });
       });
 
-      queue.wait();
+      event.wait();
     }
 
     /* command queue codepath */
     else
     {
       std::cout << "using ze_command_queue_handle_t to copy RTAS" << std::endl;
-       
       ze_command_queue_handle_t hCommandQueue = std::get<ze_command_queue_handle_t>(hQueue);
-      
+
       ze_command_list_handle_t hCommandList = nullptr;
       ze_command_list_desc_t commandListDesc = { ZE_STRUCTURE_TYPE_COMMAND_LIST_DESC, nullptr, 0, ZE_COMMAND_QUEUE_FLAG_IN_ORDER };
       err = ZeWrapper::zeCommandListCreate(hContext,hDevice,&commandListDesc,&hCommandList);
       if (err != ZE_RESULT_SUCCESS)
         throw std::runtime_error("zeCommandListCreate failed");
-      
-      err = ZeWrapper::zeRTASBuilderCommandListAppendCopyExt(hCommandList, accelDevice, accelHost, accelBytes, hEvent, 0, nullptr);
+
+      err = ZeWrapper::zeRTASBuilderCommandListAppendCopyExt(hCommandList, accelDevice, accelHost, accelBytes, nullptr, 0, nullptr);
       if (err != ZE_RESULT_SUCCESS)
         throw std::runtime_error("zeRTASBuilderCommandListAppendCopyExt failed");
       
@@ -513,12 +512,19 @@ void* build_rtas(sycl::device device, sycl::context context, sycl::queue queue, 
       if (err != ZE_RESULT_SUCCESS)
         throw std::runtime_error("zeCommandListClose failed");
       
-      err = ZeWrapper::zeCommandQueueExecuteCommandLists(hCommandQueue, 1, &hCommandList, nullptr);
-      if (err != ZE_RESULT_SUCCESS)
-        throw std::runtime_error("zeCommandQueueExecuteCommandLists failed");
-      
-      queue.wait();
-      
+      sycl::event event = queue.submit([&](sycl::handler& cgh) {
+        cgh.host_task([&](sycl::interop_handle ih) {
+          //auto hNative = ih.get_native_queue<sycl::backend::ext_oneapi_level_zero>();
+          //ze_command_list_handle_t hCommandList = std::get<ze_command_list_handle_t>(hNative);
+
+          err = ZeWrapper::zeCommandQueueExecuteCommandLists(hCommandQueue, 1, &hCommandList, nullptr);
+          if (err != ZE_RESULT_SUCCESS)
+            throw std::runtime_error("zeCommandQueueExecuteCommandLists failed");
+        });
+      });
+
+      event.wait();
+
       err = ZeWrapper::zeCommandListDestroy(hCommandList);
       if (err != ZE_RESULT_SUCCESS)
         throw std::runtime_error("zeCommandListDestroy failed");
