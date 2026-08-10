@@ -18,6 +18,9 @@ void* dispatchGlobalsPtr = nullptr;
 static uint32_t global_width = 512;
 static uint32_t global_height = 512;
 
+static int32_t global_render_pixel_x = -1;
+static int32_t global_render_pixel_y = -1;
+
 static bool use_instance = false;
 static bool use_device_memory = false;
 
@@ -607,7 +610,7 @@ void* build_tlas(sycl::device device, sycl::context context, sycl::queue queue, 
 }
 
 /* render using simple UV shading */
-void render(unsigned int x, unsigned int y, void* bvh, unsigned int* pixels, unsigned int width, unsigned int height)
+void render(unsigned int x, unsigned int y, int render_pixel_x, int render_pixel_y, void* bvh, unsigned int* pixels, unsigned int width, unsigned int height)
 {
   /* write zero image if ray tracing extension is not supported */
   intel_raytracing_ext_flag_t flags = intel_get_raytracing_ext_flag();
@@ -616,6 +619,12 @@ void render(unsigned int x, unsigned int y, void* bvh, unsigned int* pixels, uns
     return;
   }
 
+  /* just render a single pixel in render pixel mode */
+  if ((render_pixel_x != -1 && render_pixel_y != -1) && !(x == render_pixel_x && y == render_pixel_y)) {
+    pixels[y*width+x] = 0;
+    return;
+  }
+  
   /* fixed camera */
   sycl::float3 vx(-1.f, -0.f, -0.f);
   sycl::float3 vy(-0.f, -1.f, -0.f);
@@ -669,6 +678,12 @@ int main(int argc, char* argv[]) try
     }
     else if (strcmp(argv[i], "--level-zero-rtas-builder") == 0) {
       rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::LEVEL_ZERO;
+    }
+    else if (strcmp(argv[i], "--render-pixel") == 0) {
+      if (++i >= argc) throw std::runtime_error("--render-pixel x y: x expected");
+      global_render_pixel_x = atoi(argv[i]);
+      if (++i >= argc) throw std::runtime_error("--render-pixel x y: y expected");
+      global_render_pixel_y = atoi(argv[i]);
     }
     else if (strcmp(argv[i], "--instance") == 0) {
       use_instance = true;
@@ -785,12 +800,14 @@ int main(int argc, char* argv[]) try
   memset(pixels, 0, width*height*sizeof(uint32_t));
 
   /* renders image on device */
+  int32_t render_pixel_x = global_render_pixel_x;
+  int32_t render_pixel_y = global_render_pixel_y;
 #if defined(ZE_RAYTRACING_RT_SIMULATION)
   tbb::parallel_for(tbb::blocked_range2d<uint32_t>(0,height,0,width),
      [&](const tbb::blocked_range2d<uint32_t>& r) {
         for (int y=r.rows().begin(); y<r.rows().end(); y++) {
           for (int x=r.cols().begin(); x<r.cols().end(); x++) {
-            render(x,y,bvh,pixels,width,height);
+            render(x,y,render_pixel_x,render_pixel_y,bvh,pixels,width,height);
           }
         }
      });
@@ -800,7 +817,7 @@ int main(int argc, char* argv[]) try
                  cgh.parallel_for(range, [=](sycl::item<2> item) {
                                               const uint32_t x = item.get_id(0);
                                               const uint32_t y = item.get_id(1);
-                                              render(x,y,bvh,pixels,width,height);
+                                              render(x,y,render_pixel_x,render_pixel_y,bvh,pixels,width,height);
                                             });
                });
   queue.wait_and_throw();
