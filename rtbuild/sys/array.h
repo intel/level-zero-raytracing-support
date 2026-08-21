@@ -79,7 +79,7 @@ namespace embree
 
       __forceinline void push_back(const T& v) 
       {
-        assert(M+1 < max_size());
+        assert(M < max_size());
         items[M++] = v;
       }
 

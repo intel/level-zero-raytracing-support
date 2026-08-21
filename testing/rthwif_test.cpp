@@ -1299,8 +1299,11 @@ struct Scene
         if (err != ZE_RESULT_EXP_RTAS_BUILD_RETRY)
           break;
 
-        if (accelBufferBytesOut < bytes || size.rtasBufferSizeBytesMaxRequired < accelBufferBytesOut )
-          throw std::runtime_error("failed build returned wrong new estimate");
+        if (accelBufferBytesOut < bytes)
+          throw std::runtime_error("failed build returned smaller estimate");
+
+        if (size.rtasBufferSizeBytesMaxRequired < accelBufferBytesOut )
+          throw std::runtime_error("failed build returned too large estimate");
 
         bytes = accelBufferBytesOut;
       }
@@ -1867,11 +1870,6 @@ uint32_t executeTest(sycl::device& device, sycl::queue& queue, sycl::context& co
   if (inst != InstancingType::SW_INSTANCING &&
       (test == TestType::TRIANGLES_COMMITTED_HIT || test == TestType::TRIANGLES_POTENTIAL_HIT))
   {
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-    tbb::parallel_for(size_t(0),numTests, [&](size_t i) {
-      render(i,in[i],out_test[i],accel);
-     });
-#else
     queue.submit([&](sycl::handler& cgh) {
                    const sycl::range<1> range(numTests);
                    cgh.parallel_for(range, [=](sycl::item<1> item) {
@@ -1880,15 +1878,9 @@ uint32_t executeTest(sycl::device& device, sycl::queue& queue, sycl::context& co
                                            });
                  });
     queue.wait_and_throw();
-#endif
   }
   else
   {
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-    tbb::parallel_for(size_t(0),numTests, [&](size_t i) {
-      render_loop(i,in[i],out_test[i],scene_ptr,accel,test);
-     });
-#else
     queue.submit([&](sycl::handler& cgh) {
                    const sycl::range<1> range(numTests);
                    cgh.parallel_for(range, [=](sycl::item<1> item) {
@@ -1897,7 +1889,6 @@ uint32_t executeTest(sycl::device& device, sycl::queue& queue, sycl::context& co
                                            });
                  });
     queue.wait_and_throw();
-#endif
   }
     
   /* verify result */
@@ -1956,11 +1947,6 @@ uint32_t executeBuildTest(sycl::device& device, sycl::queue& queue, sycl::contex
 
   if (numPrimitives)
   {
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-    tbb::parallel_for(size_t(0),size_t(numPrimitives), [&](size_t i) {
-      render_loop(i,in[i],out_test[i],scene_ptr,accel,TestType::TRIANGLES_COMMITTED_HIT);
-    });
-#else
     queue.submit([&](sycl::handler& cgh) {
                    const sycl::range<1> range(numPrimitives);
                    cgh.parallel_for(range, [=](sycl::item<1> item) {
@@ -1969,7 +1955,6 @@ uint32_t executeBuildTest(sycl::device& device, sycl::queue& queue, sycl::contex
                                            });
                  });
     queue.wait_and_throw();
-#endif
   }
     
   /* verify result */
@@ -2166,10 +2151,6 @@ int main(int argc, char* argv[]) try
     return 1;
   }
 
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-  RTCore::Init();
-  RTCore::SetXeVersion((RTCore::XeVersion)ZE_RAYTRACING_DEVICE);
-#endif
 
 #if TBB_INTERFACE_VERSION >= 11005
   tbb::global_control tbb_threads(tbb::global_control::max_allowed_parallelism,numThreads);
@@ -2277,9 +2258,6 @@ int main(int argc, char* argv[]) try
   free_accel_buffer(dispatchGlobalsPtr, context);
 #endif
 
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-  RTCore::Cleanup();
-#endif
 
   if (numErrors == 0) std::cout << "[PASSED]" << std::endl;
   else                std::cout << "[FAILED]" << std::endl;

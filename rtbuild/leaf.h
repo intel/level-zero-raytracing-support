@@ -37,11 +37,15 @@ namespace embree
   enum class GeometryFlags : uint32_t
   {
     NONE = 0x0,
-    OPAQUE = 0x1
+    OPAQUE = 0x1,
   };
 
   inline bool operator& (GeometryFlags a, GeometryFlags b) {
     return (int(a) & int(b)) ? true : false;
+  }
+
+  inline GeometryFlags& operator|= (GeometryFlags& a, GeometryFlags b) {
+    return a = (GeometryFlags)(int(a) | int(b));
   }
 
   /* output operator for GeometryFlags */
@@ -128,6 +132,16 @@ namespace embree
 
     friend inline std::ostream& operator<<(std::ostream& cout, const PrimLeafDesc& desc) {
       desc.print(cout,0); return cout;
+    }
+
+    /* returns geometry index */
+    uint32_t getGeomIndex() const {
+      return geomIndex;
+    }
+    
+    /* returns geometry mask */
+    uint8_t getGeomMask() const {
+      return (uint8_t) geomMask;
     }
 
     /* Checks if opaque culling is enabled. */

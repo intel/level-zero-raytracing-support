@@ -5,6 +5,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <iostream>
 
 #include "level_zero/ze_wrapper.h"
 
@@ -27,12 +28,34 @@
 #  define RTHWIF_API_EXPORT RTHWIF_API_EXTERN_C __attribute__ ((visibility ("default")))
 #endif
 
-typedef enum _ze_raytracing_accel_format_internal_t {
-  ZE_RTAS_DEVICE_FORMAT_EXP_INVALID = 0,      // invalid acceleration structure format
-  ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1 = 1,    // acceleration structure format version 1
-  ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_2 = 2,    // acceleration structure format version 2
-  ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_MAX = 2
-} ze_raytracing_accel_format_internal_t;
+typedef enum _ze_rtas_format_t {
+  ZE_RTAS_FORMAT_INVALID = 0,   // invalid acceleration structure format
+  ZE_RTAS_FORMAT_XE = 1,        // acceleration structure format for DG2
+  ZE_RTAS_FORMAT_XE3 = 2,       // acceleration structure format for PTL
+} ze_rtas_format_t;
+
+inline std::ostream& operator<<(std::ostream& cout, const ze_rtas_format_t& rtas_format)
+{
+  switch (rtas_format)
+  {
+  case ZE_RTAS_FORMAT_INVALID: return cout << "ZE_RTAS_FORMAT_INVALID";
+  case ZE_RTAS_FORMAT_XE: return cout << "ZE_RTAS_FORMAT_XE";
+  case ZE_RTAS_FORMAT_XE3: return cout << "ZE_RTAS_FORMAT_XE3";
+  default: return cout << "ZE_RTAS_FORMAT_UNKNOWN_" << (uint32_t) rtas_format;
+  }
+}
+
+inline bool valid_rtas_format(ze_rtas_format_t rtas_format)
+{
+  bool valid_rtas_format = false;
+  valid_rtas_format |= (rtas_format == ZE_RTAS_FORMAT_XE);
+  valid_rtas_format |= (rtas_format == ZE_RTAS_FORMAT_XE3);
+  return valid_rtas_format;
+}
+
+inline bool has_old_instance_layout(ze_rtas_format_t rtas_format) {
+  return rtas_format == ZE_RTAS_FORMAT_XE;
+}
 
 
 /* EXT version of API */

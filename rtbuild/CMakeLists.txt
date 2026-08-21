@@ -1,8 +1,16 @@
 ## Copyright 2009-2021 Intel Corporation
 ## SPDX-License-Identifier: Apache-2.0
 
-ADD_LIBRARY(embree_rthwif SHARED rtbuild.cpp qbvh6.cpp statistics.cpp ../level_zero_raytracing.rc)
-TARGET_LINK_LIBRARIES(embree_rthwif PUBLIC ${EMBREE_RTHWIF_SYCL} PRIVATE tbb simd sys)
+SET(ZE_RTAS_FILES
+  rtbuild.cpp
+  qbvh6.cpp
+  statistics.cpp
+  ../level_zero_raytracing.rc
+)
+
+ADD_LIBRARY(embree_rthwif SHARED ${ZE_RTAS_FILES})
+
+TARGET_LINK_LIBRARIES(embree_rthwif PUBLIC ${EMBREE_RTHWIF_SYCL} PRIVATE tbb simd sys ${RT_SIM_LIBRARY})
 SET_TARGET_PROPERTIES(embree_rthwif PROPERTIES OUTPUT_NAME ze_intel_gpu_raytracing)
 TARGET_COMPILE_DEFINITIONS(embree_rthwif PRIVATE ZE_RAYTRACING)
 TARGET_INCLUDE_DIRECTORIES(embree_rthwif PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")

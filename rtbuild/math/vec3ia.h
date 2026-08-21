@@ -39,12 +39,16 @@ namespace embree
     __forceinline Vec3ia( const Vec3ia& other ) : m128(other.m128) {}
     __forceinline Vec3ia& operator =(const Vec3ia& other) { m128 = other.m128; return *this; }
 
+    __forceinline explicit Vec3ia( const Vec3i& v ) : m128(_mm_set_epi32(v.z, v.z, v.y, v.x)) {}
     __forceinline explicit Vec3ia( const int a ) : m128(_mm_set1_epi32(a)) {}
     __forceinline          Vec3ia( const int x, const int y, const int z) : m128(_mm_set_epi32(z, z, y, x)) {}
     __forceinline explicit Vec3ia( const __m128 a ) : m128(_mm_cvtps_epi32(a)) {}
 
     __forceinline operator const __m128i&() const { return m128; }
     __forceinline operator       __m128i&()       { return m128; }
+
+    __forceinline explicit operator const Vec3i() const { return Vec3i(x,y,z); }
+    __forceinline explicit operator       Vec3i()       { return Vec3i(x,y,z); }
 
     ////////////////////////////////////////////////////////////////////////////////
     /// Constants
@@ -70,9 +74,38 @@ namespace embree
 
   __forceinline Vec3ia operator +( const Vec3ia& a ) { return a; }
   __forceinline Vec3ia operator -( const Vec3ia& a ) { return _mm_sub_epi32(_mm_setzero_si128(), a.m128); }
+  __forceinline Vec3ia operator ~( const Vec3ia& a ) { return _mm_xor_si128(a.m128, _mm_set1_epi32(-1)); }
 #if defined(__SSSE3__)
   __forceinline Vec3ia abs       ( const Vec3ia& a ) { return _mm_abs_epi32(a.m128); }
 #endif
+
+  __forceinline Vec3ia countTrailingZeros(Vec3ia v)
+  {
+    const __m128i zero = _mm_setzero_si128();
+    const __m128i lowest_set_bit = _mm_and_si128(v.m128, _mm_sub_epi32(zero, v.m128));
+    const __m128i float_bits = _mm_castps_si128(_mm_cvtepi32_ps(lowest_set_bit));
+    const __m128i exponent = _mm_and_si128(_mm_srli_epi32(float_bits, 23), _mm_set1_epi32(0xFF));
+    const __m128i trailing_zeros = _mm_sub_epi32(exponent, _mm_set1_epi32(127));
+    const __m128i zero_mask = _mm_cmpeq_epi32(v.m128, zero);
+    return _mm_or_si128(_mm_and_si128(zero_mask, _mm_set1_epi32(32)), _mm_andnot_si128(zero_mask, trailing_zeros));
+  }
+
+  __forceinline Vec3ia countLeadingZeros(Vec3ia v)
+  {
+    const __m128i zero = _mm_setzero_si128();
+    __m128i bits = v.m128;
+    bits = _mm_or_si128(bits, _mm_srli_epi32(bits, 1));
+    bits = _mm_or_si128(bits, _mm_srli_epi32(bits, 2));
+    bits = _mm_or_si128(bits, _mm_srli_epi32(bits, 4));
+    bits = _mm_or_si128(bits, _mm_srli_epi32(bits, 8));
+    bits = _mm_or_si128(bits, _mm_srli_epi32(bits, 16));
+    const __m128i highest_set_bit = _mm_andnot_si128(_mm_srli_epi32(bits, 1), bits);
+    const __m128i float_bits = _mm_castps_si128(_mm_cvtepi32_ps(highest_set_bit));
+    const __m128i exponent = _mm_and_si128(_mm_srli_epi32(float_bits, 23), _mm_set1_epi32(0xFF));
+    const __m128i leading_zeroes = _mm_sub_epi32(_mm_set1_epi32(158), exponent);
+    const __m128i zero_mask = _mm_cmpeq_epi32(v.m128, zero);
+    return _mm_or_si128(_mm_and_si128(zero_mask, _mm_set1_epi32(32)), _mm_andnot_si128(zero_mask, leading_zeroes));
+  }
 
   ////////////////////////////////////////////////////////////////////////////////
   /// Binary Operators
@@ -106,6 +139,9 @@ namespace embree
 
   __forceinline Vec3ia operator <<( const Vec3ia& a, const int n ) { return _mm_slli_epi32(a.m128, n); }
   __forceinline Vec3ia operator >>( const Vec3ia& a, const int n ) { return _mm_srai_epi32(a.m128, n); }
+
+  __forceinline Vec3ia operator <<( const Vec3ia& a, const Vec3ia& n ) { return Vec3ia(a.x << n.x, a.y << n.y, a.z << n.z); }
+  __forceinline Vec3ia operator >>( const Vec3ia& a, const Vec3ia& n ) { return Vec3ia(a.x >> n.x, a.y >> n.y, a.z >> n.z); }
 
   __forceinline Vec3ia sll ( const Vec3ia& a, const int b ) { return _mm_slli_epi32(a.m128, b); }
   __forceinline Vec3ia sra ( const Vec3ia& a, const int b ) { return _mm_srai_epi32(a.m128, b); }

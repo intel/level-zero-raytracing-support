@@ -3,6 +3,7 @@
 
 #include "qbvh6.h"
 
+
 namespace embree
 {
   template<typename InternalNode>
@@ -63,6 +64,8 @@ namespace embree
       
       break;
     }
+
+    
     case NODE_TYPE_PROCEDURAL:
     {
       /*if (node.leafNodeProcedural()->leafDesc.isProceduralInstance()) // FIXME: for some reason we always to into this case!?
@@ -125,7 +128,7 @@ namespace embree
   }
 
   template<typename QInternalNode>
-  void QBVH6::printInternalNodeStatistics(std::ostream& cout, QBVH6::Node node, uint32_t depth, uint32_t numChildren)
+  void QBVH6::printInternalNode(std::ostream& cout, QBVH6::Node node, uint32_t depth, uint32_t numChildren)
   {
     QInternalNode* inner = node.innerNode<QInternalNode>();
     inner->print(cout, depth, false);
@@ -207,7 +210,7 @@ namespace embree
     }
     case NODE_TYPE_INTERNAL:
     {
-      printInternalNodeStatistics<QBVH6::InternalNode6>(cout, node, depth, numChildren);
+      printInternalNode<QBVH6::InternalNode6>(cout, node, depth, numChildren);
       break;
     }
     default:

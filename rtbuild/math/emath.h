@@ -293,6 +293,27 @@ namespace embree
     return x | (y << 1) | (z << 2);
   }
 
+  inline uint32_t bitWidth(const uint32_t in)
+  {
+    if (in == 0)
+      return 0;
+
+    int32_t i = 31;
+    for (; i >= 0; i--)
+      if ((in >> i) & 1)
+        break;
+
+    return i + 1;
+  }
+
+  inline uint32_t countTrailingZeros(const uint32_t d)
+  {
+    for (int32_t i=0; i<32; i++)
+      if ((d >> i) & 1)
+        return i;
+    
+    return 32;
+  }
 }
 
 #endif

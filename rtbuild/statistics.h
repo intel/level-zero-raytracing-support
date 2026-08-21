@@ -115,4 +115,5 @@ namespace embree
     LeafStat proceduralLeaf;
     LeafStat instanceLeaf;
   };
+
 }

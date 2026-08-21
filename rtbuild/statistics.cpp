@@ -138,6 +138,7 @@ namespace embree
     cout << "bvh_quad_leaf_num_bytes_used = " << quadLeaf.numBytesUsed << std::endl;
     cout << "bvh_quad_leaf_num_bytes_total = " << quadLeaf.numBytesTotal << std::endl;
 
+
     cout << "bvh_procedural_leaf_sah = " << proceduralLeaf.leafSAH << std::endl;
     cout << "bvh_procedural_leaf_num = " << proceduralLeaf.numLeaves << std::endl;
     cout << "bvh_procedural_leaf_num_prims_used = " << proceduralLeaf.numPrimsUsed << std::endl;
@@ -152,4 +153,5 @@ namespace embree
     cout << "bvh_instance_leaf_num_bytes_used = " << instanceLeaf.numBytesUsed << std::endl;
     cout << "bvh_instance_leaf_num_bytes_total = " << instanceLeaf.numBytesTotal << std::endl;
   }
+
 }

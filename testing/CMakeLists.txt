@@ -185,10 +185,6 @@ ENDFUNCTION()
 GET_FILENAME_COMPONENT(SYCL_COMPILER_DIR ${CMAKE_CXX_COMPILER} PATH)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem \"${SYCL_COMPILER_DIR}/../include/sycl\" -isystem \"${SYCL_COMPILER_DIR}/../include/\"")       # disable warning from SYCL header (FIXME: why required?)
 
-IF (ZE_RAYTRACING_RT_SIMULATION)
-  SET(RT_SIM_LIBRARY rtcore)
-  ADD_COMPILE_DEFINITIONS(ZE_RAYTRACING_RT_SIMULATION)
-ENDIF()
 
 ADD_EXECUTABLE(embree_rthwif_cornell_box rthwif_cornell_box.cpp)
 TARGET_LINK_LIBRARIES(embree_rthwif_cornell_box sys simd tbb ze_wrapper ${RT_SIM_LIBRARY} ${EMBREE_RTHWIF_SYCL})

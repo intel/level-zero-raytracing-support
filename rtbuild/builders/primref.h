@@ -89,6 +89,14 @@ namespace embree
       return p0.ID64() < p1.ID64();
     }
 
+    /* repurpose of lower.x/y to store a pointer */
+    uint64_t getSpecialPointer() const {
+      return (uint64_t&)lower.x;
+    }
+    void setSpecialPointer(uint64_t ptr) {
+      (uint64_t&)lower.x = ptr;
+    }
+
     /*! Outputs primitive reference to a stream. */
     friend __forceinline embree_ostream operator<<(embree_ostream cout, const PrimRef& ref) {
       return cout << "{ lower = " << ref.lower << ", upper = " << ref.upper << ", geomID = " << ref.geomID() << ", primID = " << ref.primID() << " }";

@@ -74,6 +74,18 @@ namespace embree
   }
   template<typename T> __forceinline Vec3<T> rcp_safe(const Vec3<T>& a) { return rcp(zero_fix(a)); }
 
+  template<typename T>
+  __forceinline Vec3<T> rotate_right(Vec3<T> v, uint32_t r = 1) {
+    r = r%3;
+    return Vec3<T>(v[(3-r)%3], v[(4-r)%3], v[(5-r)%3]);
+  }
+  
+  template<typename T>
+  __forceinline Vec3<T> rotate_left(Vec3<T> v, uint32_t r = 1) {
+    r = r%3;
+    return Vec3<T>(v[(0+r)%3], v[(1+r)%3], v[(2+r)%3]);
+  }
+
   ////////////////////////////////////////////////////////////////////////////////
   /// Binary Operators
   ////////////////////////////////////////////////////////////////////////////////

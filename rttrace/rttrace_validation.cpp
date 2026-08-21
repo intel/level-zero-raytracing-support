@@ -5,6 +5,7 @@
 
 #include <math.h>
 
+
 #define sizeof_QBVH6_InternalNode6 64
 #define QBVH6_rootNodeOffset 128
 
@@ -153,34 +154,41 @@ SYCL_EXTERNAL bool intel_get_hit_front_face( intel_ray_query_t& query, intel_hit
 
 SYCL_EXTERNAL unsigned int intel_get_hit_geometry_id(intel_ray_query_t& query, intel_hit_type_t hit_type )
 {
+  
   struct PrimLeafDesc* __restrict leaf = (struct PrimLeafDesc*)query.hit(hit_type).getPrimLeafPtr();
   return leaf->geomIndex;
 }
 
 SYCL_EXTERNAL unsigned int intel_get_hit_primitive_id( intel_ray_query_t& query, intel_hit_type_t hit_type )
 {
+  
   MemHit& hit = query.hit(hit_type);
   void* __restrict leaf = hit.getPrimLeafPtr();
   
   if (hit.leafType == NODE_TYPE_QUAD)
     return ((QuadLeaf*)leaf)->primIndex0 + hit.primIndexDelta;
   else
-     return ((ProceduralLeaf*)leaf)->_primIndex[hit.primLeafIndex];
+    return ((ProceduralLeaf*)leaf)->_primIndex[hit.getPrimLeafIndex()];
+  
 }
 
 SYCL_EXTERNAL unsigned int intel_get_hit_triangle_primitive_id( intel_ray_query_t& query, intel_hit_type_t hit_type )
 {
+  
   MemHit& hit = query.hit(hit_type);
   QuadLeaf* __restrict leaf = (QuadLeaf*) hit.getPrimLeafPtr();
   
   return leaf->primIndex0 + hit.primIndexDelta;
+  
 }
 
 SYCL_EXTERNAL unsigned int intel_get_hit_procedural_primitive_id( intel_ray_query_t& query, intel_hit_type_t hit_type )
 {
+  
   MemHit& hit = query.hit(hit_type);
   ProceduralLeaf* __restrict leaf = (ProceduralLeaf*) hit.getPrimLeafPtr();
-  return leaf->_primIndex[hit.primLeafIndex];
+  return leaf->_primIndex[hit.getPrimLeafIndex()];
+  
 }
 
 SYCL_EXTERNAL unsigned int intel_get_hit_instance_id( intel_ray_query_t& query, intel_hit_type_t hit_type )
@@ -227,10 +235,11 @@ SYCL_EXTERNAL intel_float4x3 intel_get_hit_object_to_world( intel_ray_query_t& q
 
 SYCL_EXTERNAL void intel_get_hit_triangle_vertices( intel_ray_query_t& query, intel_float3 verts_out[3], intel_hit_type_t hit_type )
 {
+  
   const QuadLeaf* __restrict leaf = (const QuadLeaf*) query.hit(hit_type).getPrimLeafPtr();
   
   unsigned int j0 = 0, j1 = 1, j2 = 2;
-  if (query.hit(hit_type).primLeafIndex != 0)
+  if (query.hit(hit_type).getPrimLeafIndex() != 0)
   {
     j0 = leaf->j0;
     j1 = leaf->j1;
@@ -240,6 +249,7 @@ SYCL_EXTERNAL void intel_get_hit_triangle_vertices( intel_ray_query_t& query, in
   verts_out[0] = { leaf->v[j0][0], leaf->v[j0][1], leaf->v[j0][2] };
   verts_out[1] = { leaf->v[j1][0], leaf->v[j1][1], leaf->v[j1][2] };
   verts_out[2] = { leaf->v[j2][0], leaf->v[j2][1], leaf->v[j2][2] };
+  
 }
 
 SYCL_EXTERNAL intel_float3 intel_get_ray_origin( intel_ray_query_t& query, unsigned int bvh_level)
@@ -280,7 +290,7 @@ SYCL_EXTERNAL bool intel_is_traversal_done( intel_ray_query_t& query ) {
 }
 
 SYCL_EXTERNAL intel_candidate_type_t intel_get_hit_candidate( intel_ray_query_t& query, intel_hit_type_t hit_type) {
-  return query.hit(hit_type).leafType == NODE_TYPE_QUAD ? intel_candidate_type_triangle : intel_candidate_type_procedural;
+  return query.hit(hit_type).leafType != NODE_TYPE_PROCEDURAL ? intel_candidate_type_triangle : intel_candidate_type_procedural;
 }
 
 SYCL_EXTERNAL bool intel_has_committed_hit( intel_ray_query_t& query ) {

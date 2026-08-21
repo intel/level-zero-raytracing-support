@@ -7,6 +7,12 @@
 #include "level_zero/ze_api_exp_ext.h" // handles EXP/EXT API differnces
 #include "qbvh6_builder_sah.h"
 
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
 namespace embree
 {
   using namespace embree::isa;
@@ -16,6 +22,58 @@ namespace embree
       static tbb::task_arena arena(tbb::this_task_arena::max_concurrency(), tbb::this_task_arena::max_concurrency());
       return arena;
   }
+
+  std::string get_env_string(const char* name)
+  {
+    if (const char* value = std::getenv(name))
+      return value;
+    else
+      return "";
+  }
+
+  int checkBoolEnvVar(const char* varName)
+  {
+    const std::string str = get_env_string(varName);
+    if (str == "") return -1;
+    else           return (str == "1");
+  }
+
+  std::string to_lower(std::string value)
+  {
+    std::transform(value.begin(), value.end(), value.begin(),
+                   [](unsigned char character) {
+                     return static_cast<char>(std::tolower(character));
+                     });
+
+    return value;
+  }
+
+  ze_rtas_format_t get_env_rtas_format()
+  {
+    static const std::string str = to_lower(get_env_string("ZE_RTAS_FORMAT"));
+    
+    if      (str == ""  ) return ZE_RTAS_FORMAT_INVALID;
+    else if (str == "xe") return ZE_RTAS_FORMAT_XE;
+    else if (str == "xe3") return ZE_RTAS_FORMAT_XE3;
+    else {
+      try {
+        return (ze_rtas_format_t) std::stoi(str);
+      } catch (...) {
+        return ZE_RTAS_FORMAT_INVALID;
+      }
+    }
+  }
+
+  int get_env_enable_spatial_splits() {
+    static int use_spatial_splits = checkBoolEnvVar("ZE_RTAS_SPATIAL_SPLITS");
+    return use_spatial_splits;
+  }
+
+  int get_env_enable_verbose() {
+    static int verbose = checkBoolEnvVar("ZE_RTAS_VERBOSE");
+    return verbose;
+  }
+
 
   inline ze_rtas_triangle_indices_uint32_exp_t getPrimitive(const ze_rtas_builder_triangles_geometry_info_exp_t* geom, uint32_t primID) {
     assert(primID < geom->triangleCount);
@@ -349,8 +407,8 @@ namespace embree
   {
     if (rtasFormat == ZE_RTAS_FORMAT_EXP_INVALID)
       return ZE_RESULT_ERROR_INVALID_ENUMERATION;
-    
-    if (uint32_t(rtasFormat) > uint32_t(ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_MAX))
+
+    if (!valid_rtas_format((ze_rtas_format_t)rtasFormat))
       return ZE_RESULT_ERROR_INVALID_ENUMERATION;
 
     return ZE_RESULT_SUCCESS;
@@ -468,8 +526,49 @@ namespace embree
     case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_PROCEDURAL : return ((ze_rtas_builder_procedural_geometry_info_exp_t*) geom)->primCount;
     case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_QUADS      : return ((ze_rtas_builder_quads_geometry_info_exp_t*) geom)->quadCount;
     case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_INSTANCE   : return 1;
-    default                              : return 0;
+    default                                           : return 0;
     };
+  }
+
+  uint8_t getGeometryMask(const ze_rtas_builder_geometry_info_exp_t* geom)
+  {
+    if (geom == nullptr)
+      return 0;
+    
+    switch (geom->geometryType) {
+    case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_TRIANGLES  : return ((ze_rtas_builder_triangles_geometry_info_exp_t*) geom)->geometryMask;
+    case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_PROCEDURAL : return ((ze_rtas_builder_procedural_geometry_info_exp_t*) geom)->geometryMask;
+    case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_QUADS      : return ((ze_rtas_builder_quads_geometry_info_exp_t*) geom)->geometryMask;
+    case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_INSTANCE   : return ((ze_rtas_builder_instance_geometry_info_exp_t*) geom)->geometryMask;
+    default                                           : return 0;
+    };
+  }
+
+  QBVH6BuilderSAH::Settings getSettings(ze_rtas_format_exp_t rtas_format,
+                                        ze_rtas_builder_build_quality_hint_exp_t build_quality,
+                                        ze_rtas_builder_build_op_exp_flags_t build_flags)
+  {
+    QBVH6BuilderSAH::Settings cfg;
+
+    /* set RTAS format */
+    cfg.rtas_format = (ze_rtas_format_t) rtas_format;
+    const ze_rtas_format_t env_rtas_format = get_env_rtas_format();
+    if (env_rtas_format != ZE_RTAS_FORMAT_INVALID)
+      cfg.rtas_format = env_rtas_format;
+        
+    /* enable spatial splits */
+    cfg.spatial_splits = (build_quality == ZE_RTAS_BUILDER_BUILD_QUALITY_HINT_EXP_HIGH) &&
+      !(build_flags & ZE_RTAS_BUILDER_BUILD_OP_EXP_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION);
+    if (get_env_enable_spatial_splits() >= 0)
+      cfg.spatial_splits = get_env_enable_spatial_splits();
+
+    
+    /* verbose mode */
+    cfg.verbose = false;
+    if (get_env_enable_verbose() >= 0)
+      cfg.verbose = get_env_enable_verbose();
+    
+    return cfg;
   }
   
   ze_result_t zeRTASBuilderGetBuildPropertiesImpl(API_TY aty, ze_rtas_builder_exp_handle_t hBuilder,
@@ -503,11 +602,17 @@ namespace embree
       };
     };
 
+    auto getMask = [&](uint32_t geomID) {
+      return getGeometryMask(geometries[geomID]);
+    };
+
+    QBVH6BuilderSAH::Settings cfg = getSettings(args->rtasFormat, args->buildQuality, args->buildFlags);
+
     /* query memory requirements from builder */
     size_t expectedBytes = 0;
     size_t worstCaseBytes = 0;
     size_t scratchBytes = 0;
-    QBVH6BuilderSAH::estimateSize(numGeometries, getSize, getType, args->rtasFormat, args->buildQuality, args->buildFlags, expectedBytes, worstCaseBytes, scratchBytes);
+    QBVH6BuilderSAH::estimateSize(numGeometries, getSize, getType, getMask, cfg, expectedBytes, worstCaseBytes, scratchBytes);
     
     /* fill return struct */
     pProp->flags = 0;
@@ -556,6 +661,10 @@ namespace embree
       case ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_INSTANCE: return QBVH6BuilderSAH::INSTANCE;
       default: throw std::runtime_error("invalid geometry type");
       };
+    };
+
+    auto getMask = [&](uint32_t geomID) {
+      return getGeometryMask(geometries[geomID]);
     };
     
     auto createPrimRefArray = [&] (evector<PrimRef>& prims, BBox1f time_range, const range<size_t>& r, size_t k, unsigned int geomID) -> PrimInfo
@@ -647,14 +756,15 @@ namespace embree
     }
 #endif
 
-    bool verbose = false;
+    QBVH6BuilderSAH::Settings cfg = getSettings(args->rtasFormat, args->buildQuality, args->buildFlags);
+    
     bool success = QBVH6BuilderSAH::build(numGeometries, nullptr, 
-                           getSize, getType, 
+                           getSize, getType, getMask,
                            createPrimRefArray, getTriangle, getTriangleIndices, getQuad, getProcedural, getInstance,
                            (char*)pRtasBuffer, rtasBufferSizeBytes,
                            pScratchBuffer, scratchBufferSizeBytes,
                            (BBox3f*) pBounds, pRtasBufferSizeBytes,
-                           args->rtasFormat, args->buildQuality, args->buildFlags, verbose, dispatchGlobalsPtr);
+                           cfg, dispatchGlobalsPtr);
     if (!success) {
       return ZE_RESULT_EXP_RTAS_BUILD_RETRY;
     }

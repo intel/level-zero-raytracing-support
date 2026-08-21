@@ -24,7 +24,6 @@ jobs:
         cmake --build . --target package
 
   release-ze_raytracing-windows-VS2022:
-    secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/windows.yml@main
     with:
       runs-on: '[ "Windows", "build" ]'

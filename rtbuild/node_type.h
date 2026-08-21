@@ -52,5 +52,6 @@ namespace embree
 
     /* Sub-type for NODE_TYPE_PROCEDURAL */
     SUB_TYPE_PROCEDURAL = 0,          // Xe+: standard procedural leaf
+
   };
 }

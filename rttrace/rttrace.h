@@ -3,9 +3,6 @@
 
 #pragma once
 
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-#include "rtcore.h"
-#endif
 
 #if defined(EMBREE_SYCL_RT_VALIDATION_API)
 #  include "rttrace_validation.h"

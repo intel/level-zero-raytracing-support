@@ -3,7 +3,7 @@
 
 #pragma once
 
-#if ZE_RAYTRACING_DEVICE == 3
+#if ZE_RAYTRACING_DEVICE >= 3
 #  define MemRay MemRayV2
 #  define MemHit MemHitV2
 #  define QuadLeaf QuadLeafV2
@@ -196,6 +196,10 @@ struct __attribute__ ((packed,aligned(32))) MemHitV1
     return sycl::global_ptr<void>((void*)(uint64_t(instLeafPtr)*64)).get();
   }
 
+  inline uint32_t getPrimLeafIndex() {
+    return primLeafIndex;
+  }
+
 public:
   float    ft;                   // hit distance of current hit (or initial traversal distance)
   float    fu,fv;                 // barycentric hit coordinates
@@ -265,6 +269,10 @@ struct __attribute__ ((packed,aligned(32))) MemHitV2
 
   inline void* getInstanceLeafPtr() {
     return sycl::global_ptr<void>((void*)(uint64_t(instLeafPtr)*64)).get();
+  }
+
+  inline uint32_t getPrimLeafIndex() {
+    return primLeafIndex;
   }
 
 public:

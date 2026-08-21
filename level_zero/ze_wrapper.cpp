@@ -344,8 +344,9 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
   
   /* fill properties */
   pProperties->flags = 0;
-  pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_INVALID;
+  pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_FORMAT_EXP_INVALID;
   pProperties->rtasBufferAlignment = 128;
+
 
   /* check for supported device ID */
   ze_device_properties_t device_props{ ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES };
@@ -361,7 +362,7 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
   /* disabling of device check through env variable */
   const char* disable_device_check = getenv("EMBREE_DISABLE_DEVICEID_CHECK");
   if (disable_device_check && strcmp(disable_device_check,"1") == 0) {
-    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_FORMAT_XE;
     return ZE_RESULT_SUCCESS;
   }
   
@@ -374,7 +375,7 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
     (0x56C0 <= device_id && device_id <= 0x56C1);
   
   if (dg2) {
-    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_FORMAT_XE;
     return ZE_RESULT_SUCCESS;
   }
 
@@ -389,7 +390,7 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
     (device_id == 0xE216);
   
   if (bmg) {
-    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_FORMAT_XE;
     return ZE_RESULT_SUCCESS;
   }
   
@@ -401,7 +402,7 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
     (device_id == 0x0BD4);
   
   if (pvc) {
-    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_FORMAT_XE;
     return ZE_RESULT_SUCCESS;
   }
   
@@ -414,7 +415,7 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
     (device_id == 0x7D60);
   
   if (mtl) {
-    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_FORMAT_XE;
     return ZE_RESULT_SUCCESS;
   }
 
@@ -424,7 +425,7 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
     device_id == 0x6420;
   
   if (lnl) {
-    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_FORMAT_XE;
     return ZE_RESULT_SUCCESS;
   }
   
@@ -440,9 +441,10 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
     device_id == 0xB0B0;
   
   if (ptl) {
-    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_2;
+    pProperties->rtasFormat = (ze_rtas_format_exp_t) ZE_RTAS_FORMAT_XE3;
     return ZE_RESULT_SUCCESS;
   }
+  
   
   return ZE_RESULT_ERROR_UNKNOWN;
 }

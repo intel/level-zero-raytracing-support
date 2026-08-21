@@ -114,7 +114,7 @@ namespace embree
 
     /* pretty printing */
     template<typename QInternalNode>
-    static void printInternalNodeStatistics(std::ostream& cout, QBVH6::Node node, uint32_t depth, uint32_t numChildren = 6);
+    static void printInternalNode(std::ostream& cout, QBVH6::Node node, uint32_t depth, uint32_t numChildren = 6);
     static void print(std::ostream& cout, QBVH6::Node node, uint32_t depth, uint32_t numChildren=6);
     void print(std::ostream& cout = std::cout) const;
 
@@ -207,7 +207,7 @@ namespace embree
     }
 
   public:
-    ze_raytracing_accel_format_internal_t rtas_format = ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1;
+    ze_rtas_format_t rtas_format = ZE_RTAS_FORMAT_INVALID;
     uint32_t reserved1;
     BBox3f bounds;                  // bounding box of the BVH
 

@@ -54,7 +54,7 @@ if(NOT tbb_static_POPULATED)
     string(REPLACE "-fPIC" "" TBB_CLANG_CONTENT "${TBB_CLANG_CONTENT}")
     file(WRITE "${tbb_static_SOURCE_DIR}/cmake/compilers/Clang.cmake" "${TBB_CLANG_CONTENT}")
   endif()
-
+  
   # We want to build tbb_static to link it into embree_rthwif, but don't want to
   # install it as part of the Embree install targets.
   IF (NOT TBB_HEADER)

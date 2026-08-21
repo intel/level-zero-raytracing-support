@@ -779,10 +779,6 @@ int main(int argc, char* argv[]) try
   std::cout << "RTAS format = " << rtasProp.rtasFormat << std::endl;
   std::cout << "RTAS alignment = " << rtasProp.rtasBufferAlignment << std::endl;
 
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-  RTCore::Init();
-  RTCore::SetXeVersion((RTCore::XeVersion)ZE_RAYTRACING_DEVICE);
-#endif
 
 #if defined(EMBREE_SYCL_ALLOC_DISPATCH_GLOBALS)
   dispatchGlobalsPtr = allocDispatchGlobals(device,context);
@@ -804,16 +800,6 @@ int main(int argc, char* argv[]) try
   /* renders image on device */
   int32_t render_pixel_x = global_render_pixel_x;
   int32_t render_pixel_y = global_render_pixel_y;
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-  tbb::parallel_for(tbb::blocked_range2d<uint32_t>(0,height,0,width),
-     [&](const tbb::blocked_range2d<uint32_t>& r) {
-        for (int y=r.rows().begin(); y<r.rows().end(); y++) {
-          for (int x=r.cols().begin(); x<r.cols().end(); x++) {
-            render(x,y,render_pixel_x,render_pixel_y,bvh,pixels,width,height);
-          }
-        }
-     });
-#else
   queue.submit([&](sycl::handler& cgh) {
                  const sycl::range<2> range(width,height);
                  cgh.parallel_for(range, [=](sycl::item<2> item) {
@@ -823,7 +809,6 @@ int main(int argc, char* argv[]) try
                                             });
                });
   queue.wait_and_throw();
-#endif
   
   /* free acceleration structure again */
   free_accel_buffer(bvh,context);
@@ -832,9 +817,6 @@ int main(int argc, char* argv[]) try
   free_accel_buffer(dispatchGlobalsPtr, context);
 #endif
   
-#if defined(ZE_RAYTRACING_RT_SIMULATION)
-  RTCore::Cleanup();
-#endif
 
   /* store image to disk */
   storeTga(pixels,width,height,"cornell_box.tga");

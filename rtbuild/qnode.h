@@ -34,10 +34,7 @@ namespace embree
     : node(nullptr), type(NODE_TYPE_INVALID), cur_prim(0) {}
     
     NodeRef (void* node, NodeType type, uint8_t cur_prim)
-    : node((char*)node), type(type), cur_prim(cur_prim)
-    {
-      assert(cur_prim < 16);
-    }
+    : node((char*)node), type(type), cur_prim(cur_prim) {}
     
     /* decode from 64 bit encoding used in MemRay and Instances */
     NodeRef (uint64_t nodePtr, uint64_t offset = 0)
@@ -81,6 +78,7 @@ namespace embree
       assert(type == NODE_TYPE_PROCEDURAL);
       return (ProceduralLeaf*)node;
     }
+
     
     friend bool operator ==(const NodeRef& a, const NodeRef& b) {
       return (a.node == b.node) && (a.type == b.type) && (a.cur_prim == b.cur_prim);
@@ -99,7 +97,7 @@ namespace embree
   public:
     char* node;           // pointer to the referenced node
     NodeType type;        // type of the node referenced
-    uint8_t cur_prim : 4; // current primitive referenced in the leaf
+    uint8_t cur_prim;     // current primitive referenced in the leaf
   };
 
    /*
@@ -283,18 +281,30 @@ namespace embree
       assert((int64_t)(int32_t)(childDataOffset / 64) == (childDataOffset / 64));
       this->childOffset = (int32_t)(childDataOffset / 64);
     }
+
+    /* tests if a child should use 128B stride */
+    bool isStride128(NodeType childType) const {
+      return false;
+    }
     
     /* Sets the type, size, and current primitive of a child */
     void setChildType(uint32_t child, NodeType childType, uint32_t block_delta, uint32_t cur_prim)
     {
       // there is no need to store block_delta for last child
       if (child == NUM_CHILDREN-1) block_delta = 0;
-      
+
+      /* handle 128B stride */
+      if (isStride128(childType))
+      {
+        assert(block_delta%2 == 0);
+        block_delta/=2;
+      }
+
       assert(block_delta < 4);
-      assert(cur_prim < 16);
-      
+            
       if (isFatLeaf())
       {
+        assert(cur_prim < 16);
         assert(this->nodeType == childType);
         this->childData[child].startPrim = cur_prim;
         this->childData[child].blockIncr = block_delta;
@@ -343,7 +353,7 @@ namespace embree
     {
       int64_t ofs = this->childOffset;
       for (uint32_t j = 0; j < childID; j++)
-        ofs += this->childData[j].blockIncr;
+        ofs += getBlockIncr(j);
       return 64 * ofs;
     }
     
@@ -370,6 +380,13 @@ namespace embree
       
       else
         return 0;
+    }
+
+    /* return block increment in 64B blocks */
+    uint32_t getBlockIncr(uint32_t childID) const
+    {
+      const uint32_t stride = isStride128(getChildType(childID)) ? 2 : 1;
+      return stride*this->childData[childID].blockIncr;
     }
     
     /* Returns a node reference for the given child. This reference

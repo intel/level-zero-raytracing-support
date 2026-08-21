@@ -9,17 +9,11 @@
 #include "rtbuild.h"
 #include <atomic>
 
-#if defined(ZE_RAYTRACING)
+
 #include "builders/priminfo.h"
 #include "builders/primrefgen_presplit.h"
 #include "builders/heuristic_binning_array_aligned.h"
 #include "algorithms/parallel_for_for_prefix_sum.h"
-#else
-#include "../../builders/priminfo.h"
-#include "../../builders/primrefgen_presplit.h"
-#include "../../builders/heuristic_binning_array_aligned.h"
-#include "../../../common/algorithms/parallel_for_for_prefix_sum.h"
-#endif
 
 namespace embree
 {
@@ -32,11 +26,6 @@ namespace embree
       
       /* the type of primitive that is referenced */
       enum Type { TRIANGLE=0, QUAD=1, PROCEDURAL=2, INSTANCE=3, UNKNOWN=4, NUM_TYPES=5 };
-
-      /* check when we use spatial splits */
-      static bool useSpatialSplits(ze_rtas_builder_build_quality_hint_exp_t build_quality, ze_rtas_builder_build_op_exp_flags_t build_flags) {
-        return build_quality == ZE_RTAS_BUILDER_BUILD_QUALITY_HINT_EXP_HIGH && !(build_flags & ZE_RTAS_BUILDER_BUILD_OP_EXP_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION);
-      }
 
       /* BVH allocator */
       struct Allocator
@@ -111,7 +100,7 @@ namespace embree
           : gmask(gmask) {}
         
         PrimLeafDesc desc(uint32_t geomID) const {
-          return PrimLeafDesc(0,geomID,GeometryFlags::NONE,gmask,PrimLeafDesc::TYPE_OPACITY_CULLING_ENABLED);
+          return PrimLeafDesc(geomID,geomID,GeometryFlags::NONE,gmask,PrimLeafDesc::TYPE_OPACITY_CULLING_ENABLED);
         }
        
         uint8_t gmask;
@@ -129,13 +118,41 @@ namespace embree
         uint32_t instanceUserID;
       };
 
+      /*! settings for SAH builder */
+      struct Settings
+      {
+      public:
+        size_t maxDepth = 27;        //!< maximum depth of BVH to build
+        size_t sahBlockSize = 6;     //!< blocksize for SAH heuristic
+        size_t leafSize[NUM_TYPES] = { 9,9,6,6,6 }; //!< target size of a leaf
+        size_t typeSplitSize = 128;  //!< number of primitives when performing type splitting
+        bool verbose = false;       // verbose mode
+
+        ze_rtas_format_t rtas_format = ZE_RTAS_FORMAT_INVALID;
+        bool spatial_splits = false; // enabled when spatial splits should get used
+        
+      public:
+        friend std::ostream& operator<<(std::ostream& cout, const Settings& cfg)
+        {
+          cout << "Settings {" << std::endl;
+          cout << "  maxDepth = " << cfg.maxDepth << std::endl;
+          cout << "  sahBlockSize = " << cfg.sahBlockSize << std::endl;
+          cout << "  typeSplitSize = " << cfg.typeSplitSize << std::endl;
+          cout << "  verbose = " << cfg.verbose << std::endl;
+          cout << "  rtas_format = " << cfg.rtas_format << std::endl;
+          cout << "  spatial_splits = " << cfg.spatial_splits << std::endl;
+          cout << "}";
+          return cout;
+        }
+      };
+
       struct Stats
       {
         size_t numTriangles = 0;
         size_t numQuads = 0;
         size_t numProcedurals = 0;
         size_t numInstances = 0;
-        
+
         /* assume some reasonable quadification rate */
         void estimate_quadification()
         {
@@ -154,19 +171,27 @@ namespace embree
           return numTriangles+numQuads+numProcedurals+numInstances;
         }
         
-        size_t expected_bvh_bytes()
+        size_t expected_bvh_bytes(const Settings& cfg)
         {
           const size_t blocks = (size()+5)/6;
-          const size_t expected_bytes   = 128 + 64*size_t(1+1.5*blocks) + numTriangles*64 + numQuads*64 + numProcedurals*8 + numInstances*128;
+          size_t expected_bytes = 128 + 64*size_t(1+1.5*blocks);
+
+            expected_bytes += numTriangles*64 + numQuads*64;
+          
+          expected_bytes += numProcedurals*8 + numInstances*128;
           const size_t bytes = 2*4096 + size_t(1.1*expected_bytes); // FIXME: FastAllocator wastes memory and always allocates 4kB per thread
           return (bytes+127)&-128;
         }
         
-        size_t worst_case_bvh_bytes()
+        size_t worst_case_bvh_bytes(const Settings& cfg)
         {
           const size_t numPrimitives = size();
           const size_t blocks = (numPrimitives+5)/6;
-          const size_t worst_case_bytes = 128 + 64*(1+blocks + numPrimitives) + numTriangles*64 + numQuads*64 + numProcedurals*64 + numInstances*128;
+          size_t worst_case_bytes = 128 + 64*(1+blocks + numPrimitives);
+
+            worst_case_bytes += numTriangles*64 + numQuads*64;
+          
+          worst_case_bytes += numProcedurals*64 + numInstances*128;
           const size_t bytes = 2*4096 + size_t(1.1*worst_case_bytes); // FIXME: FastAllocator wastes memory and always allocates 4kB per thread
           return (bytes+127)&-128;
         }
@@ -174,16 +199,18 @@ namespace embree
         size_t scratch_space_bytes() {
           return size()*sizeof(PrimRef)+64;  // 64 to align to 64 bytes
         }
-      };
-      
-      /*! settings for SAH builder */
-      struct Settings
-      {
-      public:
-        size_t maxDepth = 27;        //!< maximum depth of BVH to build
-        size_t sahBlockSize = 6;     //!< blocksize for SAH heuristic
-        size_t leafSize[NUM_TYPES] = { 9,9,6,6,6 }; //!< target size of a leaf
-        size_t typeSplitSize = 128;  //!< number of primitives when performing type splitting
+
+
+        friend inline std::ostream& operator<<(std::ostream& cout, const Stats& s)
+        {
+          cout << "Stats { " << std::endl;
+          cout << "  numTriangles = " << s.numTriangles << std::endl;
+          cout << "  numQuads = " << s.numQuads << std::endl;
+          cout << "  numProcedurals = " << s.numProcedurals << std::endl;
+          cout << "  numInstances = " << s.numInstances << std::endl;
+          cout << "}" << std::endl;
+          return cout;
+        }
       };
       
       /*! recursive state of builder */
@@ -223,7 +250,6 @@ namespace embree
           : block_delta(block_delta), cur_prim(start_prim)
         {
           assert(block_delta < 4);
-          assert(start_prim < 16);
         }
         
         friend std::ostream& operator<<(std::ostream& cout,const PrimRange& range) {
@@ -243,6 +269,12 @@ namespace embree
 
         inline bool valid() { return node != nullptr; }
 
+        friend inline std::ostream& operator<<(std::ostream& cout, const ReductionTy& r)
+        {
+          return cout << "ReductionTy { node = " << (void*) r.node << ", type = " << r.type << ", mask = " << (uint32_t) r.nodeMask <<
+            ", block_delta = " << (uint32_t) r.primRange.block_delta << ", cur_prim = " << (uint32_t) r.primRange.cur_prim << " }";
+        }
+        
       public:
         char* node;
         NodeType type;
@@ -296,9 +328,11 @@ namespace embree
         uint32_t             currBlockID;
         ProceduralLeaf*      currProcedural;
       };
+
       
       template<typename getSizeFunc,
                typename getTypeFunc,
+               typename getMaskFunc,
                typename createPrimRefArrayFunc,
                typename getTriangleFunc,
                typename getTriangleIndicesFunc,
@@ -314,6 +348,7 @@ namespace embree
         BuilderT (Device* device,
                   const getSizeFunc& getSize,
                   const getTypeFunc& getType,
+                  const getMaskFunc& getMask,
                   const createPrimRefArrayFunc& createPrimRefArray,
                   const getTriangleFunc& getTriangle,
                   const getTriangleIndicesFunc& getTriangleIndices,
@@ -321,23 +356,18 @@ namespace embree
                   const getProceduralFunc& getProcedural,
                   const getInstanceFunc& getInstance,
                   void* scratch_ptr, size_t scratch_bytes,
-                  ze_rtas_format_exp_t rtas_format,
-                  ze_rtas_builder_build_quality_hint_exp_t build_quality,
-                  ze_rtas_builder_build_op_exp_flags_t build_flags,
-                  bool verbose)
+                  Settings cfg)
           : getSize(getSize),
             getType(getType),
+            getMask(getMask),
             createPrimRefArray(createPrimRefArray),
             getTriangle(getTriangle),
             getTriangleIndices(getTriangleIndices),
             getQuad(getQuad),
             getProcedural(getProcedural),
             getInstance(getInstance),
-            prims(scratch_ptr,scratch_bytes),
-            rtas_format((ze_raytracing_accel_format_internal_t)rtas_format),
-            build_quality(build_quality),
-            build_flags(build_flags),
-            verbose(verbose) {} 
+            cfg(cfg),
+            prims(scratch_ptr,scratch_bytes) {} 
         
         ReductionTy setInternalNode(char* curAddr, size_t curBytes, NodeType nodeTy, char* childAddr,
                                     BuildRecord children[BVH_WIDTH], ReductionTy values[BVH_WIDTH], size_t numChildren)
@@ -355,7 +385,7 @@ namespace embree
           uint8_t nodeMask = 0;
           for (uint32_t i = 0; i < numChildren; i++)
           {
-            qnode->setChild(i,children[i].bounds(),values[i].type,values[i].primRange.block_delta);
+            qnode->setChild(i,children[i].bounds(),values[i].type,values[i].primRange.block_delta,values[i].primRange.cur_prim);
             nodeMask |= values[i].nodeMask;
           }
           qnode->nodeMask = nodeMask;
@@ -394,8 +424,11 @@ namespace embree
             if (lb1 == 3) p3 = tri1.p1;
             if (lb2 == 3) p3 = tri1.p2;
           }
+
+          /* this avoids treating unpaired triangles as quad UV mode */
+          if (second == 0) second = 1;
           
-          return QuadLeaf( p0,p1,p2,p3, lb0,lb1,lb2, 0, geomID, primID, primID+second, tri.gflags, tri.gmask, false );
+          return QuadLeaf( p0,p1,p2,p3, lb0,lb1,lb2, geomID, geomID, primID, primID+second, tri.gflags, tri.gmask, false );
         };
         
         QuadLeaf createQuadLeaf(Type ty, const PrimRef& prim)
@@ -409,9 +442,10 @@ namespace embree
           {
             assert(ty == QUAD);
             const Quad quad = getQuad(geomID,primID);
-            return QuadLeaf(quad.p0,quad.p1,quad.p3,quad.p2, 3,2,1, 0, geomID, primID, primID, quad.gflags, quad.gmask, false );
+            return QuadLeaf(quad.p0,quad.p1,quad.p3,quad.p2, 3,2,1, geomID, geomID, primID, primID, quad.gflags, quad.gmask, false );
           }
         }
+
 
         const ReductionTy createQuads(Type ty, const BuildRecord& curRecord, char* curAddr_)
         {
@@ -491,7 +525,7 @@ namespace embree
           
           return ReductionTy(curAddr, NODE_TYPE_INTERNAL, nodeMask, PrimRange(curBytes/64));
         }
-
+        
         template<typename InstanceLeaf>
         const ReductionTy createInstances(const BuildRecord& curRecord, char* curAddr, size_t curBytes)
         {
@@ -702,14 +736,15 @@ namespace embree
                                                    });
           
           /* create leaf of proper type */
-          if (ty == TRIANGLE || ty == QUAD)
-            return createFatQuadLeaf(ty, curRecord, curAddr, curBytes, children, numChildren);
+          if (ty == TRIANGLE || ty == QUAD) {
+              return createFatQuadLeaf(ty, curRecord, curAddr, curBytes, children, numChildren);
+          }
           else if (ty == PROCEDURAL)
             return createProcedurals(curRecord,curAddr,curBytes);
           else if (ty == INSTANCE) {
-            if (rtas_format == ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_1)
+            if (has_old_instance_layout(cfg.rtas_format))
               return createInstances<InstanceLeaf>(curRecord,curAddr,curBytes);
-            else if (rtas_format == ZE_RTAS_DEVICE_FORMAT_EXP_VERSION_2)
+            else
               return createInstances<InstanceLeafV2>(curRecord,curAddr,curBytes);
           }
           
@@ -882,7 +917,7 @@ namespace embree
             bounds.extend(tri0.p1);
             bounds.extend(tri0.p2);
             if (!tri0.valid()) continue;
-            
+
             if (pair != QUADIFIER_TRIANGLE)
             {
               Triangle tri1 = getTriangle(geomID,j+pair);
@@ -985,7 +1020,8 @@ namespace embree
 
         ReductionTy build(uint32_t numGeometries, PrimInfo& pinfo_o, char* root)
         {
-          double t1 = verbose ? getSeconds() : 0.0;
+          double t0 = 0.0f, t1 = 0.0, dt = 0.0f;
+          if (cfg.verbose) t0 = getSeconds();
 
           /* quadify all triangles */
           ParallelForForPrefixSumState<PrimInfo> pstate;
@@ -997,8 +1033,10 @@ namespace embree
               return PrimInfo(r.size());
           }, [](const PrimInfo& a, const PrimInfo& b) -> PrimInfo { return PrimInfo::merge(a,b); });
 
-          double t2 = verbose ? getSeconds() : 0.0;
-          if (verbose) std::cout << "quadification: " << std::setw(10) << (t2-t1)*1000.0 << "ms, " << std::endl; //<< std::setw(10) << 1E-6*double(numTriangles)/(t2-t1) << " Mtris/s" << std::endl;
+          if (cfg.verbose) {
+            t1 = getSeconds(); dt = t1-t0; t0 = t1;
+            std::cout << "quadification: " << std::setw(10) << dt*1000.0 << "ms, " << std::endl; //<< std::setw(10) << 1E-6*double(numTriangles)/dt << " Mtris/s" << std::endl;
+          }
 
           size_t numPrimitives = pinfo.size();
           
@@ -1011,8 +1049,10 @@ namespace embree
               return createPrimRefArray(prims,BBox1f(0,1),r,base.size(),(unsigned)geomID);
           }, [](const PrimInfo& a, const PrimInfo& b) -> PrimInfo { return PrimInfo::merge(a,b); });
 
-          double t3 = verbose ? getSeconds() : 0.0;
-          if (verbose) std::cout << "primrefgen   : " << std::setw(10) << (t3-t2)*1000.0 << "ms, " << std::setw(10) << 1E-6*double(numPrimitives)/(t3-t2) << " Mprims/s" << std::endl;
+          if (cfg.verbose) {
+            t1 = getSeconds(); dt = t1-t0; t0 = t1;
+            std::cout << "primrefgen   : " << std::setw(10) << dt*1000.0 << "ms, " << std::setw(10) << 1E-6*double(numPrimitives)/dt << " Mprims/s" << std::endl;
+          }
           
           /* if we need to filter out geometry, run again */
           if (pinfo.size() != numPrimitives)
@@ -1028,12 +1068,14 @@ namespace embree
             }, [](const PrimInfo& a, const PrimInfo& b) -> PrimInfo { return PrimInfo::merge(a,b); });
           }
           assert(pinfo.size() == numPrimitives);
-          
-          double t4 = verbose ? getSeconds() : 0.0;
-          if (verbose) std::cout << "primrefgen2  : " << std::setw(10) << (t4-t3)*1000.0 << "ms, " << std::setw(10) << 1E-6*double(numPrimitives)/(t4-t3) << " Mprims/s" << std::endl;
+
+          if (cfg.verbose) {
+            t1 = getSeconds(); dt = t1-t0; t0 = t1;
+            std::cout << "primrefgen2  : " << std::setw(10) << dt*1000.0 << "ms, " << std::setw(10) << 1E-6*double(numPrimitives)/dt << " Mprims/s" << std::endl;
+          }
           
           /* perform pre-splitting */
-          if (useSpatialSplits(build_quality,build_flags) &&  numPrimitives)
+          if (cfg.spatial_splits && numPrimitives)
           {
             auto splitter = [this] (const PrimRef& prim, const size_t dim, const float pos, PrimRef& left_o, PrimRef& right_o) {
               splitTriangleOrQuad(prim,dim,pos,left_o,right_o);
@@ -1055,18 +1097,21 @@ namespace embree
             pinfo = createPrimRefArray_presplit(numPrimitives, prims, pinfo, splitter1, splitPrimitiveArea1);
           }
 
+
           /* exit early if scene is empty */
           if (pinfo.size() == 0) {
             pinfo_o = pinfo;
             return createEmptyNode(root);
           }
-          
+
           /* build hierarchy */
           BuildRecord record(1,pinfo,UNKNOWN);
           ReductionTy r = createInternalNode(record,root,sizeof(QBVH6::InternalNode6));
-          
-          double t5 = verbose ? getSeconds() : 0.0;
-          if (verbose) std::cout << "bvh_build    : " << std::setw(10) << (t5-t4)*1000.0 << "ms, " << std::setw(10) << 1E-6*double(numPrimitives)/(t5-t4) << " Mprims/s" << std::endl;
+
+          if (cfg.verbose) {
+            t1 = getSeconds(); dt = t1-t0; t0 = t1;
+            std::cout << "bvh_build    : " << std::setw(10) << dt*1000.0 << "ms, " << std::setw(10) << 1E-6*double(numPrimitives)/dt << " Mprims/s" << std::endl;
+          }
 
           pinfo_o = pinfo;
           return r;
@@ -1074,42 +1119,41 @@ namespace embree
 
         bool build(size_t numGeometries, char* accel, size_t bytes, BBox3f* boundsOut, size_t* accelBufferBytesOut, void* dispatchGlobalsPtr)
         {
-          double t0 = verbose ? getSeconds() : 0.0;
+          double t0 = cfg.verbose ? getSeconds() : 0.0;
 
-          Stats stats;
-          size_t numPrimitives = 0;
+          /* calculate scene statistics */
+          stats = QBVH6BuilderSAH::computeStatsAndUpdateConfig(numGeometries, getSize, getType, getMask, cfg);
+
+          /* debug print of config */
+          if (cfg.verbose)
+            std::cout << "config = " << cfg << std::endl;
+
+          /* initialize triangle quadification data */
           quadification.resize(numGeometries);
-          for (size_t geomID=0; geomID<numGeometries; geomID++)
+          
+          if (stats.numTriangles > 0)
           {
-            const uint32_t N = getSize(geomID);
-            numPrimitives += N;
-            if (N == 0) continue;
-
-            switch (getType(geomID)) {
-            case QBVH6BuilderSAH::TRIANGLE  :
-              stats.numTriangles += numPrimitives;
-              quadification[geomID].resize(N);
-              break;
-            case QBVH6BuilderSAH::QUAD      : stats.numQuads += N; break;
-            case QBVH6BuilderSAH::PROCEDURAL: stats.numProcedurals += N; break;
-            case QBVH6BuilderSAH::INSTANCE  : stats.numInstances += N; break;
-            default: assert(false); break;
+            for (size_t geomID=0; geomID<numGeometries; geomID++)
+            {
+              const uint32_t N = getSize(geomID);
+              if (N == 0) continue;
+              if (getType(geomID) == QBVH6BuilderSAH::TRIANGLE)
+                quadification[geomID].resize(N);
             }
           }
 
-          stats.estimate_presplits(1.2);
-          size_t worstCaseBytes = stats.worst_case_bvh_bytes();
+          size_t worstCaseBytes = stats.worst_case_bvh_bytes(cfg);
           if (accelBufferBytesOut) *accelBufferBytesOut = std::min(std::max(bytes+64,size_t(1.2*bytes)), worstCaseBytes);
 
-          prims.resize(numPrimitives); // FIXME: this does not apply spatial split budget, triangles do agressive presplitting because of quadification
-          
-          double t1 = verbose ? getSeconds() : 0.0;
-          if (verbose) std::cout << "scene_size   : " << std::setw(10) << (t1-t0)*1000.0 << "ms" << std::endl;
+          prims.resize(stats.size()); // FIXME: this does agressive presplitting because of quadification
+
+          double t1 = cfg.verbose ? getSeconds() : 0.0;
+          if (cfg.verbose) std::cout << "scene_size   : " << std::setw(10) << (t1-t0)*1000.0 << "ms" << std::endl;
 
           PrimInfo pinfo;
           BBox3f bounds = empty;
 
-          if (verbose) std::cout << "trying BVH build with " << bytes << " bytes" << std::endl;
+          if (cfg.verbose) std::cout << "trying BVH build with " << bytes << " bytes" << std::endl;
 
           /* allocate BVH memory */
           allocator.init(accel,bytes);
@@ -1136,7 +1180,7 @@ namespace embree
 
           /* fill QBVH6 header */
           QBVH6* qbvh = new (accel) QBVH6(QBVH6::SizeEstimate());
-          qbvh->rtas_format = rtas_format;
+          qbvh->rtas_format = cfg.rtas_format;
           qbvh->numPrims = 0; //numPrimitives;
           uint64_t rootNodeOffset = QBVH6::Node((char*)(r.node - (char*)qbvh), r.type, r.primRange.cur_prim);
           assert(rootNodeOffset == QBVH6::rootNodeOffset);
@@ -1145,12 +1189,16 @@ namespace embree
           qbvh->numTimeSegments = 1; 
           qbvh->dispatchGlobalsPtr = (uint64_t) dispatchGlobalsPtr;
 
-#if 0
-          BVHStatistics stats = qbvh->computeStatistics();
-          stats.print(std::cout);
-          stats.print_raw(std::cout);
-          qbvh->print();
+          if (cfg.verbose)
+          {
+            BVHStatistics stats = qbvh->computeStatistics();
+            stats.print(std::cout);
+            //stats.print_raw(std::cout);
 
+          
+          //qbvh->print();
+          }
+          
           /*std::cout << "#define bvh_bytes " << bytes << std::endl;
           std::cout << "const unsigned char bvh_data[bvh_bytes] = {";
           for (size_t i=0; i<bytes; i++) {
@@ -1158,13 +1206,15 @@ namespace embree
             std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0') << (unsigned)((unsigned char*)accel)[i] << ", ";
           }
           std::cout << std::endl << "};" << std::endl;*/
-#endif
+
           return true;
         }
-        
+
+
       private:
         const getSizeFunc getSize;
         const getTypeFunc getType;
+        const getMaskFunc getMask;
         const createPrimRefArrayFunc createPrimRefArray;
         const getTriangleFunc getTriangle;
         const getTriangleIndicesFunc getTriangleIndices;
@@ -1172,55 +1222,75 @@ namespace embree
         const getProceduralFunc getProcedural;
         const getInstanceFunc getInstance;
         Settings cfg;
+        Stats stats;
         evector<PrimRef> prims;
         Allocator allocator;
         std::vector<std::vector<uint16_t>> quadification;
-        ze_raytracing_accel_format_internal_t rtas_format;
-        ze_rtas_builder_build_quality_hint_exp_t build_quality;
-        ze_rtas_builder_build_op_exp_flags_t build_flags;
-        bool verbose;
-        
       };
 
       template<typename getSizeFunc,
-               typename getTypeFunc>
+               typename getTypeFunc,
+               typename getMaskFunc>
+
+      static Stats computeStatsAndUpdateConfig(size_t numGeometries,
+                                               const getSizeFunc& getSize,
+                                               const getTypeFunc& getType,
+                                               const getMaskFunc& getMask,
+                                               Settings& cfg)
+      {
+        Stats stats;
+        MAYBE_UNUSED uint8_t mask_or = 0x00;
+        MAYBE_UNUSED uint8_t mask_and = 0xFF;
+
+        for (size_t geomID=0; geomID<numGeometries; geomID++)
+        {
+          uint32_t N = getSize(geomID);
+          if (N == 0) continue;
+
+          const uint8_t mask = getMask(geomID);
+          mask_or  |= mask;
+          mask_and &= mask;
+
+          switch (getType(geomID)) {
+          default: assert(false); break;
+          case QBVH6BuilderSAH::TRIANGLE  : stats.numTriangles += N; break;
+          case QBVH6BuilderSAH::QUAD      : stats.numQuads += N; break;
+          case QBVH6BuilderSAH::PROCEDURAL: stats.numProcedurals += N; break;
+          case QBVH6BuilderSAH::INSTANCE  : stats.numInstances += N; break;
+          };
+        }
+
+
+        /* incorporate presplitting */
+        if (cfg.spatial_splits)
+          stats.estimate_presplits(1.2);
+
+        return stats;
+      }
+
+      template<typename getSizeFunc,
+               typename getTypeFunc,
+               typename getMaskFunc>
        
       static void estimateSize(size_t numGeometries,
                                const getSizeFunc& getSize,
                                const getTypeFunc& getType,
-                               ze_rtas_format_exp_t rtas_format,
-                               ze_rtas_builder_build_quality_hint_exp_t build_quality,
-                               ze_rtas_builder_build_op_exp_flags_t build_flags,
+                               const getMaskFunc& getMask,
+                               Settings cfg,
                                size_t& expectedBytes,
                                size_t& worstCaseBytes,
                                size_t& scratchBytes)
       {
-        Stats stats;
-        for (size_t geomID=0; geomID<numGeometries; geomID++)
-        {
-          uint32_t numPrimitives = getSize(geomID);
-          if (numPrimitives == 0) continue;
-          
-          switch (getType(geomID)) {
-          default: assert(false); break;
-          case QBVH6BuilderSAH::TRIANGLE  : stats.numTriangles += numPrimitives; break;
-          case QBVH6BuilderSAH::QUAD      : stats.numQuads += numPrimitives; break;
-          case QBVH6BuilderSAH::PROCEDURAL: stats.numProcedurals += numPrimitives; break;
-          case QBVH6BuilderSAH::INSTANCE  : stats.numInstances += numPrimitives; break;
-          };
-        }
-        
-        if (useSpatialSplits(build_quality,build_flags))
-          stats.estimate_presplits(1.2);
-        
-        worstCaseBytes = stats.worst_case_bvh_bytes();
+        Stats stats = computeStatsAndUpdateConfig(numGeometries, getSize, getType, getMask, cfg);
+        worstCaseBytes = stats.worst_case_bvh_bytes(cfg);
         scratchBytes = stats.scratch_space_bytes();
         stats.estimate_quadification();
-        expectedBytes = stats.expected_bvh_bytes();
-      }      
+        expectedBytes = stats.expected_bvh_bytes(cfg);
+      }
 
        template<typename getSizeFunc,
                typename getTypeFunc,
+               typename getMaskFunc,
                typename createPrimRefArrayFunc,
                typename getTriangleFunc,
                typename getTriangleIndicesFunc,
@@ -1232,6 +1302,7 @@ namespace embree
                           Device* device,
                           const getSizeFunc& getSize,
                           const getTypeFunc& getType,
+                          const getMaskFunc& getMask,
                           const createPrimRefArrayFunc& createPrimRefArray,
                           const getTriangleFunc& getTriangle,
                           const getTriangleIndicesFunc& getTriangleIndices,
@@ -1242,10 +1313,7 @@ namespace embree
                           void* scratch_ptr, size_t scratch_bytes,
                           BBox3f* boundsOut,
                           size_t* accelBufferBytesOut,
-                          ze_rtas_format_exp_t rtas_format,
-                          ze_rtas_builder_build_quality_hint_exp_t build_quality,
-                          ze_rtas_builder_build_op_exp_flags_t build_flags,
-                          bool verbose,
+                          Settings cfg,
                           void* dispatchGlobalsPtr)
       {
         /* align scratch buffer to 64 bytes */
@@ -1253,8 +1321,8 @@ namespace embree
         if (!scratchAligned)
           throw std::runtime_error("scratch buffer cannot get aligned");
     
-        BuilderT<getSizeFunc, getTypeFunc, createPrimRefArrayFunc, getTriangleFunc, getTriangleIndicesFunc, getQuadFunc, getProceduralFunc, getInstanceFunc> builder
-          (device, getSize, getType, createPrimRefArray, getTriangle, getTriangleIndices, getQuad, getProcedural, getInstance, scratch_ptr, scratch_bytes, rtas_format, build_quality, build_flags, verbose);
+        BuilderT<getSizeFunc, getTypeFunc, getMaskFunc, createPrimRefArrayFunc, getTriangleFunc, getTriangleIndicesFunc, getQuadFunc, getProceduralFunc, getInstanceFunc> builder
+          (device, getSize, getType, getMask, createPrimRefArray, getTriangle, getTriangleIndices, getQuad, getProcedural, getInstance, scratch_ptr, scratch_bytes, cfg);
         
         return builder.build(numGeometries, accel_ptr, accel_bytes, boundsOut, accelBufferBytesOut, dispatchGlobalsPtr);
       }
