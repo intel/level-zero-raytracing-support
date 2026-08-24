@@ -153,11 +153,9 @@ namespace embree
         size_t numProcedurals = 0;
         size_t numInstances = 0;
 
-        /* assume some reasonable quadification rate */
-        void estimate_quadification()
-        {
-          numQuads += (numTriangles+1)/2 + numTriangles/8;
-          numTriangles = 0;
+        /* estimate number of triangle pairs after quadification */
+        size_t numTrianglePairsExpected() const {
+          return (numTriangles+1)/2 + numTriangles/8;
         }
         
         void estimate_presplits( double factor )
@@ -167,37 +165,41 @@ namespace embree
           numInstances = max(numInstances, size_t(numInstances*factor));
         }
         
-        size_t size() {
+        size_t worst_case_size() const {
           return numTriangles+numQuads+numProcedurals+numInstances;
+        }
+
+        size_t expected_size() const {
+          return numTrianglePairsExpected()+numQuads+numProcedurals+numInstances;
         }
         
         size_t expected_bvh_bytes(const Settings& cfg)
         {
-          const size_t blocks = (size()+5)/6;
+          const size_t blocks = (expected_size()+5)/6;
           size_t expected_bytes = 128 + 64*size_t(1+1.5*blocks);
 
-            expected_bytes += numTriangles*64 + numQuads*64;
+            expected_bytes += numTrianglePairsExpected()*64 + numQuads*64;
           
           expected_bytes += numProcedurals*8 + numInstances*128;
-          const size_t bytes = 2*4096 + size_t(1.1*expected_bytes); // FIXME: FastAllocator wastes memory and always allocates 4kB per thread
+          const size_t bytes = 2*4096 + size_t(1.1*expected_bytes); // add some memory to avoid some retries
           return (bytes+127)&-128;
         }
         
         size_t worst_case_bvh_bytes(const Settings& cfg)
         {
-          const size_t numPrimitives = size();
+          const size_t numPrimitives = worst_case_size();
           const size_t blocks = (numPrimitives+5)/6;
           size_t worst_case_bytes = 128 + 64*(1+blocks + numPrimitives);
 
             worst_case_bytes += numTriangles*64 + numQuads*64;
           
           worst_case_bytes += numProcedurals*64 + numInstances*128;
-          const size_t bytes = 2*4096 + size_t(1.1*worst_case_bytes); // FIXME: FastAllocator wastes memory and always allocates 4kB per thread
+          const size_t bytes = 2*4096 + size_t(1.1*worst_case_bytes); // just to be on the safe side
           return (bytes+127)&-128;
         }
         
         size_t scratch_space_bytes() {
-          return size()*sizeof(PrimRef)+64;  // 64 to align to 64 bytes
+          return worst_case_size()*sizeof(PrimRef)+64;  // 64 to align to 64 bytes
         }
 
 
@@ -1145,7 +1147,7 @@ namespace embree
           size_t worstCaseBytes = stats.worst_case_bvh_bytes(cfg);
           if (accelBufferBytesOut) *accelBufferBytesOut = std::min(std::max(bytes+64,size_t(1.2*bytes)), worstCaseBytes);
 
-          prims.resize(stats.size()); // FIXME: this does agressive presplitting because of quadification
+          prims.resize(stats.worst_case_size()); // FIXME: this does aggressive presplitting because of quadification
 
           double t1 = cfg.verbose ? getSeconds() : 0.0;
           if (cfg.verbose) std::cout << "scene_size   : " << std::setw(10) << (t1-t0)*1000.0 << "ms" << std::endl;
@@ -1284,7 +1286,6 @@ namespace embree
         Stats stats = computeStatsAndUpdateConfig(numGeometries, getSize, getType, getMask, cfg);
         worstCaseBytes = stats.worst_case_bvh_bytes(cfg);
         scratchBytes = stats.scratch_space_bytes();
-        stats.estimate_quadification();
         expectedBytes = stats.expected_bvh_bytes(cfg);
       }
 

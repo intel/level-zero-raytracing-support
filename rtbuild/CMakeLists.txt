@@ -8,6 +8,7 @@ SET(ZE_RTAS_FILES
   ../level_zero_raytracing.rc
 )
 
+
 ADD_LIBRARY(embree_rthwif SHARED ${ZE_RTAS_FILES})
 
 TARGET_LINK_LIBRARIES(embree_rthwif PUBLIC ${EMBREE_RTHWIF_SYCL} PRIVATE tbb simd sys ${RT_SIM_LIBRARY})

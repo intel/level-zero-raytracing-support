@@ -75,6 +75,15 @@ namespace embree
   }
 
 
+  inline ze_rtas_format_exp_t get_rtas_format(const ze_rtas_builder_build_op_exp_desc_t* args)
+  {
+    const ze_rtas_format_t env_rtas_format = get_env_rtas_format();
+    if (env_rtas_format != ZE_RTAS_FORMAT_INVALID)
+      return (ze_rtas_format_exp_t) env_rtas_format;
+    else
+      return args->rtasFormat;
+  }
+  
   inline ze_rtas_triangle_indices_uint32_exp_t getPrimitive(const ze_rtas_builder_triangles_geometry_info_exp_t* geom, uint32_t primID) {
     assert(primID < geom->triangleCount);
     return *(ze_rtas_triangle_indices_uint32_exp_t*)((char*)geom->pTriangleBuffer + uint64_t(primID)*geom->triangleStride);
@@ -429,7 +438,7 @@ namespace embree
       return ZE_RESULT_ERROR_INVALID_ENUMERATION;
 
     /* check if acceleration structure format is supported */
-    VALIDATE(aty,args->rtasFormat);
+    VALIDATE(aty,get_rtas_format(args));
 
     /* check for valid geometries array */
     if (args->ppGeometries == nullptr && args->numGeometries > 0)
@@ -544,18 +553,16 @@ namespace embree
     };
   }
 
-  QBVH6BuilderSAH::Settings getSettings(ze_rtas_format_exp_t rtas_format,
-                                        ze_rtas_builder_build_quality_hint_exp_t build_quality,
-                                        ze_rtas_builder_build_op_exp_flags_t build_flags)
+  QBVH6BuilderSAH::Settings getSettings(const ze_rtas_builder_build_op_exp_desc_t* args)
   {
+    const ze_rtas_builder_build_quality_hint_exp_t build_quality = args->buildQuality;
+    const ze_rtas_builder_build_op_exp_flags_t build_flags = args->buildFlags;
+      
     QBVH6BuilderSAH::Settings cfg;
 
     /* set RTAS format */
-    cfg.rtas_format = (ze_rtas_format_t) rtas_format;
-    const ze_rtas_format_t env_rtas_format = get_env_rtas_format();
-    if (env_rtas_format != ZE_RTAS_FORMAT_INVALID)
-      cfg.rtas_format = env_rtas_format;
-        
+    cfg.rtas_format = (ze_rtas_format_t) get_rtas_format(args);
+    
     /* enable spatial splits */
     cfg.spatial_splits = (build_quality == ZE_RTAS_BUILDER_BUILD_QUALITY_HINT_EXP_HIGH) &&
       !(build_flags & ZE_RTAS_BUILDER_BUILD_OP_EXP_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION);
@@ -606,7 +613,7 @@ namespace embree
       return getGeometryMask(geometries[geomID]);
     };
 
-    QBVH6BuilderSAH::Settings cfg = getSettings(args->rtasFormat, args->buildQuality, args->buildFlags);
+    QBVH6BuilderSAH::Settings cfg = getSettings(args);
 
     /* query memory requirements from builder */
     size_t expectedBytes = 0;
@@ -756,7 +763,7 @@ namespace embree
     }
 #endif
 
-    QBVH6BuilderSAH::Settings cfg = getSettings(args->rtasFormat, args->buildQuality, args->buildFlags);
+    QBVH6BuilderSAH::Settings cfg = getSettings(args);
     
     bool success = QBVH6BuilderSAH::build(numGeometries, nullptr, 
                            getSize, getType, getMask,

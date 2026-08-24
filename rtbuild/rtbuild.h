@@ -32,6 +32,9 @@ typedef enum _ze_rtas_format_t {
   ZE_RTAS_FORMAT_INVALID = 0,   // invalid acceleration structure format
   ZE_RTAS_FORMAT_XE = 1,        // acceleration structure format for DG2
   ZE_RTAS_FORMAT_XE3 = 2,       // acceleration structure format for PTL
+  ZE_RTAS_FORMAT_VERSION_3 = 3,
+  ZE_RTAS_FORMAT_VERSION_4 = 4,
+  ZE_RTAS_FORMAT_VERSION_5 = 5,
 } ze_rtas_format_t;
 
 inline std::ostream& operator<<(std::ostream& cout, const ze_rtas_format_t& rtas_format)
@@ -41,6 +44,9 @@ inline std::ostream& operator<<(std::ostream& cout, const ze_rtas_format_t& rtas
   case ZE_RTAS_FORMAT_INVALID: return cout << "ZE_RTAS_FORMAT_INVALID";
   case ZE_RTAS_FORMAT_XE: return cout << "ZE_RTAS_FORMAT_XE";
   case ZE_RTAS_FORMAT_XE3: return cout << "ZE_RTAS_FORMAT_XE3";
+  case ZE_RTAS_FORMAT_VERSION_3: return cout << "ZE_RTAS_FORMAT_VERSION_3";
+  case ZE_RTAS_FORMAT_VERSION_4: return cout << "ZE_RTAS_FORMAT_VERSION_4";
+  case ZE_RTAS_FORMAT_VERSION_5: return cout << "ZE_RTAS_FORMAT_VERSION_5";
   default: return cout << "ZE_RTAS_FORMAT_UNKNOWN_" << (uint32_t) rtas_format;
   }
 }
@@ -50,6 +56,9 @@ inline bool valid_rtas_format(ze_rtas_format_t rtas_format)
   bool valid_rtas_format = false;
   valid_rtas_format |= (rtas_format == ZE_RTAS_FORMAT_XE);
   valid_rtas_format |= (rtas_format == ZE_RTAS_FORMAT_XE3);
+  valid_rtas_format |= (rtas_format == ZE_RTAS_FORMAT_VERSION_3);
+  valid_rtas_format |= (rtas_format == ZE_RTAS_FORMAT_VERSION_4);
+  valid_rtas_format |= (rtas_format == ZE_RTAS_FORMAT_VERSION_5);
   return valid_rtas_format;
 }
 
