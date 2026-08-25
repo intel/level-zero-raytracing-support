@@ -53,8 +53,9 @@ namespace embree
     static const std::string str = to_lower(get_env_string("ZE_RTAS_FORMAT"));
     
     if      (str == ""  ) return ZE_RTAS_FORMAT_INVALID;
-    else if (str == "xe") return ZE_RTAS_FORMAT_XE;
-    else if (str == "xe3") return ZE_RTAS_FORMAT_XE3;
+    else if (str == "dg2") return ZE_RTAS_FORMAT_DG2;
+    else if (str == "ptl") return ZE_RTAS_FORMAT_PTL;
+    else if (str == "nvlp") return ZE_RTAS_FORMAT_NVL_P;
     else {
       try {
         return (ze_rtas_format_t) std::stoi(str);

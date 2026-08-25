@@ -38,6 +38,7 @@ The oneAPI Level Zero Ray Tracing Support library is distributed under the [Apac
 |Battlemage| Y |
 |Lunar Lake| Y |
 |Panther Lake| Y |
+|Nova Lake| Y |
 
 _No code changes may be introduced that would regress support for any currently supported hardware. All contributions must ensure continued compatibility and functionality across all supported hardware platforms. Failure to maintain hardware compatibility may result in the rejection or reversion of the contribution. Any deliberate modifications or removal of hardware support will be transparently communicated in the release notes._
 
