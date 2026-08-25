@@ -1,6 +1,9 @@
 Version History
 ---------------
 
+### oneAPI Level Zero Ray Tracing Support 1.3.0
+- Added support for NVL RTAS format.
+
 ### oneAPI Level Zero Ray Tracing Support 1.2.4
 - Fixed crash in high quality RTAS build over instances when using device memory.
 

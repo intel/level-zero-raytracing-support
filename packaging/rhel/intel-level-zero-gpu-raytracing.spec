@@ -1,5 +1,5 @@
 #it's changed by external script
-%global ver 1.2.4
+%global ver 1.3.0
 %global rel 1
 
 Name: intel-level-zero-gpu-raytracing
@@ -53,6 +53,8 @@ cd build
 %doc
 
 %changelog
+* Tue Aug 25 2026 Sven Woop <sven.woop@intel.com> - 1.3.0
+- Added support for NVL RTAS format.
 * Mon May 18 2026 Sven Woop <sven.woop@intel.com> - 1.2.4
 - Fixed crash in high quality RTAS build over instances when using device memory.
 * Mon Feb 16 2026 Sven Woop <sven.woop@intel.com> - 1.2.3
