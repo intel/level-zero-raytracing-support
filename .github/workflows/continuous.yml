@@ -21,6 +21,18 @@ jobs:
         cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release ..
         cmake --build . --target package
 
+  ze_raytracing-ubuntu24_04-GCC:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
+    with:
+      image: embree/ubuntu:24.04
+      runs-on: '[ "Linux", "docker", "build" ]'
+      cmd: |
+        mkdir build
+        cd build
+        cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release ..
+        cmake --build . --target package
+
   ze_raytracing-linux-DPCPP-test:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
@@ -265,6 +277,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - ze_raytracing-ubuntu22_04-GCC
+      - ze_raytracing-ubuntu24_04-GCC
       - ze_raytracing-linux-DPCPP-test
       - ze_raytracing-linux-DPCPP-test-DG2
       - ze_raytracing-linux-DPCPP-test-PVC
