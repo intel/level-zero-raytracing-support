@@ -14,6 +14,8 @@
 
 namespace embree
 {
+  struct Vec3fa;
+  
   ////////////////////////////////////////////////////////////////////////////////
   /// SSE Vec3ia Type
   ////////////////////////////////////////////////////////////////////////////////
@@ -42,7 +44,8 @@ namespace embree
     __forceinline explicit Vec3ia( const Vec3i& v ) : m128(_mm_set_epi32(v.z, v.z, v.y, v.x)) {}
     __forceinline explicit Vec3ia( const int a ) : m128(_mm_set1_epi32(a)) {}
     __forceinline          Vec3ia( const int x, const int y, const int z) : m128(_mm_set_epi32(z, z, y, x)) {}
-    __forceinline explicit Vec3ia( const __m128 a ) : m128(_mm_cvtps_epi32(a)) {}
+    //__forceinline explicit Vec3ia( const __m128 a ) : m128(_mm_cvtps_epi32(a)) {}
+    __forceinline explicit Vec3ia( const Vec3fa& a );
 
     __forceinline operator const __m128i&() const { return m128; }
     __forceinline operator       __m128i&()       { return m128; }

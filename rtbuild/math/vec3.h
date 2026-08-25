@@ -271,4 +271,7 @@ namespace embree
 namespace embree
 {
   template<> __forceinline Vec3<float>::Vec3(const Vec3fa& a) { x = a.x; y = a.y; z = a.z; }
+  template<> __forceinline Vec3<int   >::Vec3(const Vec3fa& a) { x = int(a.x); y = int(a.y); z = int(a.z); }
+
+  __forceinline Vec3ia::Vec3ia( const Vec3fa& a ) : m128(_mm_cvtps_epi32(a.m128)) {}
 }
