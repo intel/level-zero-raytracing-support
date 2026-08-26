@@ -35,6 +35,28 @@ jobs:
         cmake -G "Visual Studio 17 2022" -A "x64" ..
         cmake --build . --config ReleaseInternal --target package
 
+  static-analysis-coverity-linux:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    with:
+      project: "Level Zero Ray Tracing Support"
+      server: prod4
+      prebuild: |
+        cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB=build_static
+      build: cmake --build build
+      os: Linux
+
+  static-analysis-coverity-windows:
+    secrets: inherit
+    uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/static_analysis.yml@main
+    with:
+      project: "Level Zero Ray Tracing Support"
+      server: prod4
+      prebuild: |
+        cmake -S . -B build -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D ZE_RAYTRACING_TBB=build_static
+      build: cmake --build build
+      os: Windows
+
   source-code-analysis:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/source_analysis.yml@main
@@ -71,9 +93,11 @@ jobs:
     needs:
       - release-ze_raytracing-ubuntu22_04-GCC
       - release-ze_raytracing-windows-VS2022
+      - static-analysis-coverity-linux
+      - static-analysis-coverity-windows
+      - source-code-analysis
       - binary-analysis
       - antivirus-scan
-      - source-code-analysis
 
     if: failure() || cancelled()
     steps:
