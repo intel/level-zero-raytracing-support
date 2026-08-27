@@ -37,7 +37,7 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      image: embree/ubuntu:22.04
+      image: embree/ubuntu:24.04
       runs-on: '[ "Linux", "docker", "build" ]'
       env-from-files: ./.github/workflows/dpcpp-sycl-nightly.env
       artifact-out: ze_raytracing-linux-DPCPP-test
@@ -53,10 +53,10 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     needs: ["ze_raytracing-linux-DPCPP-test"]
     with:
-      image: embree/ubuntu:22.04
+      image: embree/ubuntu:24.04
       options: --device=/dev/dri:/dev/dri
       runs-on: '[ "Linux", "docker", "dg2" ]'
-      env-from-files: ./.github/workflows/gfx-ubuntu22-internal.env
+      env-from-files: ./.github/workflows/gfx-ubuntu24.env
       artifact-in: ze_raytracing-linux-DPCPP-test
       cmd: |
         cd build
@@ -72,10 +72,10 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     needs: ["ze_raytracing-linux-DPCPP-test"]
     with:
-      image: embree/ubuntu:22.04
+      image: embree/ubuntu:24.04
       options: --device=/dev/dri:/dev/dri
       runs-on: '[ "Linux", "docker", "pvc" ]'
-      env-from-files: ./.github/workflows/gfx-ubuntu22-internal.env
+      env-from-files: ./.github/workflows/gfx-ubuntu24.env
       artifact-in: ze_raytracing-linux-DPCPP-test
       cmd: |
         cd build
@@ -90,7 +90,7 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      image: embree/ubuntu:22.04
+      image: embree/ubuntu:24.04
       runs-on: '[ "Linux", "docker", "build" ]'
       dpcpp-version: intel/2025.2.1.7
       artifact-out: ze_raytracing-linux-ICX-test
@@ -106,10 +106,10 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     needs: ["ze_raytracing-linux-ICX-test"]
     with:
-      image: embree/ubuntu:22.04
+      image: embree/ubuntu:24.04
       options: --device=/dev/dri:/dev/dri
       runs-on: '[ "Linux", "docker", "dg2" ]'
-      env-from-files: ./.github/workflows/gfx-ubuntu22-internal.env
+      env-from-files: ./.github/workflows/gfx-ubuntu24.env
       artifact-in: ze_raytracing-linux-ICX-test
       cmd: |
         cd build
@@ -124,7 +124,7 @@ jobs:
     secrets: inherit
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     with:
-      image: embree/ubuntu:22.04
+      image: embree/ubuntu:24.04
       runs-on: '[ "Linux", "docker", "build" ]'
       dpcpp-version: intel/2025.2.1.7
       artifact-out: ze_raytracing-linux-ICX-test-level-zero
@@ -140,10 +140,10 @@ jobs:
     uses: intel-innersource/libraries.devops.renderkit.workflows/.github/workflows/docker.yml@main
     needs: ["ze_raytracing-linux-ICX-test-level-zero"]
     with:
-      image: embree/ubuntu:22.04
+      image: embree/ubuntu:24.04
       options: --device=/dev/dri:/dev/dri
       runs-on: '[ "Linux", "docker", "dg2" ]'
-      env-from-files: ./.github/workflows/gfx-ubuntu22-internal.env
+      env-from-files: ./.github/workflows/gfx-ubuntu24.env
       artifact-in: ze_raytracing-linux-ICX-test-level-zero
       cmd: |
         cd build
@@ -207,7 +207,7 @@ jobs:
     needs: ["ze_raytracing-windows-test"]
     with:
       runs-on: '[ "Windows", "dg2" ]'
-      env-from-files: ./.github/workflows/gfx-windows-internal.env
+      env-from-files: ./.github/workflows/gfx-windows.env
       artifact-in: ze_raytracing-windows-test
       cmd: |
         cd build
@@ -239,7 +239,7 @@ jobs:
     needs: ["ze_raytracing-windows-test-level-zero"]
     with:
       runs-on: '[ "Windows", "dg2" ]'
-      env-from-files: ./.github/workflows/gfx-windows-internal.env
+      env-from-files: ./.github/workflows/gfx-windows.env
       artifact-in: ze_raytracing-windows-test-level-zero
       cmd: |
         cd build
