@@ -61,11 +61,7 @@ jobs:
       cmd: |
         cd build
         tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
-        cd intel-level-zero-gpu-raytracing*.x86_64.linux
-        ./run.sh
-        ./run_ext.sh
-        cd bin
-        ctest -VV
+        ctest -VV --test-dir intel-level-zero-gpu-raytracing*.x86_64.linux/bin
 
   ze_raytracing-linux-DPCPP-test-PVC:
     secrets: inherit
@@ -80,11 +76,7 @@ jobs:
       cmd: |
         cd build
         tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
-        cd intel-level-zero-gpu-raytracing*.x86_64.linux
-        ./run.sh
-        ./run_ext.sh
-        cd bin
-        ctest -VV
+        ctest -VV --test-dir intel-level-zero-gpu-raytracing*.x86_64.linux/bin
 
   ze_raytracing-linux-ICX-test:
     secrets: inherit
@@ -114,11 +106,7 @@ jobs:
       cmd: |
         cd build
         tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
-        cd intel-level-zero-gpu-raytracing*.x86_64.linux
-        ./run.sh
-        ./run_ext.sh
-        cd bin
-        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:. ctest -VV
+        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:. ctest -VV --test-dir intel-level-zero-gpu-raytracing*.x86_64.linux/bin
 
   ze_raytracing-linux-ICX-test-level-zero:
     secrets: inherit
@@ -148,11 +136,7 @@ jobs:
       cmd: |
         cd build
         tar xzf intel-level-zero-gpu-raytracing*.x86_64.linux.tar.gz
-        cd intel-level-zero-gpu-raytracing*.x86_64.linux
-        ./run.sh
-        ./run_ext.sh
-        cd bin
-        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:. ctest -VV
+        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:. ctest -VV --test-dir intel-level-zero-gpu-raytracing*.x86_64.linux/bin
         
   ze_raytracing-windows-VS2022-Debug:
     secrets: inherit
@@ -212,11 +196,9 @@ jobs:
       cmd: |
         cd build
         unzip intel-level-zero-gpu-raytracing*.x64.windows.zip
-        cd intel-level-zero-gpu-raytracing*.x64.windows
-        .\run.bat
         if ($LASTEXITCODE -ne 0) { throw "Command failed" }
-        cd bin
-        ctest -VV
+        cd intel-level-zero-gpu-raytracing*.x64.windows
+        ctest -VV --test-dir bin
         if ($LASTEXITCODE -ne 0) { throw "Command failed" }
 
   ze_raytracing-windows-test-level-zero:
@@ -244,11 +226,9 @@ jobs:
       cmd: |
         cd build
         unzip intel-level-zero-gpu-raytracing*.x64.windows.zip
-        cd intel-level-zero-gpu-raytracing*.x64.windows
-        .\run.bat
         if ($LASTEXITCODE -ne 0) { throw "Command failed" }
-        cd bin
-        ctest -VV
+        cd intel-level-zero-gpu-raytracing*.x64.windows
+        ctest -VV --test-dir bin
         if ($LASTEXITCODE -ne 0) { throw "Command failed" }
 
   success:
