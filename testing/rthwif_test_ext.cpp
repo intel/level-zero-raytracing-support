@@ -1971,14 +1971,22 @@ uint32_t executeBuildTest(sycl::device& device, sycl::queue& queue, sycl::contex
   return numErrors;
 }
 
-uint32_t executeBuildTest(sycl::device& device, sycl::queue& queue, sycl::context& context, TestType test, BuildMode buildMode)
+uint32_t executeBuildTest(sycl::device& device, sycl::queue& queue, sycl::context& context, TestType test, BuildMode buildMode, int testID, int testCount)
 {
+  /* set default test count */
+  if (testID < 0 && testCount < 0)
+    testCount = 128;
+   
   uint32_t numErrors = 0;
-  for (uint32_t i=0; i<128; i++)
+  const uint32_t begin = testID >= 0 ? (uint32_t)testID :                  0u;
+  const uint32_t count = testID >= 0 ?               1u : (uint32_t)testCount;
+  const uint32_t end = begin+count;
+
+  for (uint32_t i=begin; i<end; i++)
   {
     /* reduces test complexity for some tests to work around CI issues */
-    if (test == TestType::BUILD_TEST_MIXED && (i&4)) continue;
-    if (test == TestType::BUILD_TEST_INSTANCES && (i&4)) continue;
+    if (testID < 0 && test == TestType::BUILD_TEST_MIXED && (i&4)) continue;
+    if (testID < 0 && test == TestType::BUILD_TEST_INSTANCES && (i&4)) continue;
 
     const uint32_t numPrimitives = i>10 ? i*i : i;
     std::cout << "testing " << numPrimitives << " primitives" << std::endl;
@@ -1987,9 +1995,17 @@ uint32_t executeBuildTest(sycl::device& device, sycl::queue& queue, sycl::contex
   return numErrors;
 }
 
-uint32_t executeBenchmark(sycl::device& device, sycl::queue& queue, sycl::context& context, TestType test)
+uint32_t executeBenchmark(sycl::device& device, sycl::queue& queue, sycl::context& context, TestType test, int testID, int testCount)
 {
-  for (uint32_t i=0; i<=20; i++)
+  /* set default test count */
+  if (testID < 0 && testCount < 0)
+    testCount = 21;
+   
+  const uint32_t begin = testID >= 0 ? (uint32_t)testID :                  0u;
+  const uint32_t count = testID >= 0 ?               1u : (uint32_t)testCount;
+  const uint32_t end = begin+count;
+
+  for (uint32_t i=begin; i<end; i++)
   {
     const uint32_t numPrimitives = 1<<i;
 
@@ -2061,6 +2077,8 @@ int main(int argc, char* argv[]) try
   ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::LEVEL_ZERO;
   
   bool jit_cache = false;
+  int testID = -1;
+  int testCount = -1;
   uint32_t numThreads = tbb::this_task_arena::max_concurrency();
   
   /* command line parsing */
@@ -2129,6 +2147,16 @@ int main(int argc, char* argv[]) try
     else if (strcmp(argv[i], "--jit-cache") == 0) {
       if (++i >= argc) throw std::runtime_error("Error: --jit-cache <int>: syntax error");
       jit_cache = atoi(argv[i]);
+    }
+    else if (strcmp(argv[i], "--test-id") == 0) {
+      if (++i >= argc) throw std::runtime_error("Error: --test-id <int>: syntax error");
+      testID = atoi(argv[i]);
+      if (testID < 0) throw std::runtime_error("Error: --test-id must be non-negative");
+    }
+    else if (strcmp(argv[i], "--test-count") == 0) {
+      if (++i >= argc) throw std::runtime_error("Error: --test-count <int>: syntax error");
+      testCount = atoi(argv[i]);
+      if (testCount <= 0) throw std::runtime_error("Error: --test-count must be positive");
     }
     else if (strcmp(argv[i], "--threads") == 0) {
       if (++i >= argc) throw std::runtime_error("Error: --threads <int>: syntax error");
@@ -2241,9 +2269,9 @@ int main(int argc, char* argv[]) try
 
   uint32_t numErrors = 0;
   if (test >= TestType::BENCHMARK_TRIANGLES)
-    numErrors = executeBenchmark(device,queue,context,test);
+    numErrors = executeBenchmark(device,queue,context,test,testID,testCount);
   else if (test >= TestType::BUILD_TEST_TRIANGLES)
-    numErrors = executeBuildTest(device,queue,context,test,buildMode);
+    numErrors = executeBuildTest(device,queue,context,test,buildMode,testID,testCount);
   else
     numErrors = executeTest(device,queue,context,inst,test);
 
