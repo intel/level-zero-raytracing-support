@@ -18,7 +18,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release ..
+          cmake -G Ninja -D CMAKE_CXX_COMPILER=g++ -D CMAKE_C_COMPILER=gcc -D CMAKE_BUILD_TYPE=Release -D CMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --target package
 
   ze_raytracing-windows-latest:
@@ -30,5 +30,5 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -G "Visual Studio 17 2022" -A "x64" ..
+          cmake -G "Visual Studio 17 2022" -A "x64" -D CMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config Release --target package
