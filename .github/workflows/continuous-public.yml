@@ -9,7 +9,7 @@ on: [push, workflow_dispatch]
 
 jobs:
 
-  ze_raytracing-ubuntu-24.04:
+  ze_raytracing-ubuntu-24_04:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
