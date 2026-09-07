@@ -927,6 +927,8 @@ void* alloc_accel_buffer_internal(size_t bytes, sycl::device device, sycl::conte
   ze_result_t result = ZeWrapper::zeMemAllocShared(hContext,&device_desc,&host_desc,bytes,rtasProp.rtasBufferAlignment,hDevice,&ptr);
   if (result != ZE_RESULT_SUCCESS)
     throw std::runtime_error("accel allocation failed");
+  if (ptr == nullptr)
+    throw std::runtime_error("accel allocation returned nullptr");
   return ptr;
 }
 
@@ -941,12 +943,16 @@ void free_accel_buffer_internal(void* ptr, sycl::context context)
 
 struct Block {
   Block (size_t bytes, sycl::device device, sycl::context context)
-    : base((char*)alloc_accel_buffer_internal(bytes,device,context)), total(bytes), cur(0) {}
+  {
+    bytes = (bytes+127) & (-128);
+    base = (char*)alloc_accel_buffer_internal(bytes,device,context);
+    total = bytes;
+  }
   ~Block() {
     free_accel_buffer_internal((void*)base,context);
   }
   void* alloc(size_t bytes) {
-    bytes &= -128;
+    bytes = (bytes+127) & (-128);
     if (cur+bytes > total) return nullptr;
     void* ptr = &base[cur];
     cur += bytes;
@@ -972,7 +978,7 @@ void* alloc_accel_buffer(size_t bytes, sycl::device device, sycl::context contex
   if (bytes > 1024*1024) {
     g_blocks.push_back(std::shared_ptr<Block>(new Block(bytes,device,context)));
     void* ptr = g_blocks.back()->alloc(bytes);
-    assert(ptr);
+    if (!ptr) throw std::runtime_error("allocation failed");
     return ptr;
   }
     
@@ -981,7 +987,7 @@ void* alloc_accel_buffer(size_t bytes, sycl::device device, sycl::context contex
   
   g_blocks.push_back(std::shared_ptr<Block>(new Block(1024*1024,device,context)));
   ptr = g_blocks.back()->alloc(bytes);
-  assert(ptr);
+  if (!ptr) throw std::runtime_error("allocation failed");
   return ptr;
 }
 
@@ -1182,7 +1188,6 @@ struct Scene
       throw std::runtime_error("zeDeviceGetProperties failed");
     
     /* estimate accel size */
-    size_t accelBufferBytesOut = 0;
     ze_rtas_aabb_ext_t bounds;
     ze_rtas_builder_build_op_ext_desc_t args;
     memset(&args,0,sizeof(args));
@@ -1216,6 +1221,28 @@ struct Scene
 
     accel = nullptr;
     size_t accelBytes = 0;
+    size_t accelBufferBytesOut = 0;
+
+    auto validate_buffers = [&] () {
+      
+      if (benchmark) return;
+      
+      /* scratch buffer bounds check */
+      for (size_t i=size.scratchBufferSizeBytes; i<size.scratchBufferSizeBytes+sentinelBytes; i++) {
+        if (scratchBuffer[i] == 0x00) continue;
+        throw std::runtime_error("scratch buffer bounds check failed");
+      }
+      /* acceleration structure bounds check */
+      for (size_t i=accelBytes; i<accelBytes+sentinelBytes; i++) {
+        if (((char*)accel)[i] == 0x00) continue;
+        throw std::runtime_error("acceleration buffer bounds check failed");
+      }
+      /* check if returned size of acceleration structure is correct */
+      for (size_t i=accelBufferBytesOut; i<accelBytes; i++) {
+        if (((char*)accel)[i] == 0x00) continue;
+        throw std::runtime_error("wrong acceleration structure size returned");
+      }
+    };
     
     /* build with different modes */
     switch (buildMode)
@@ -1254,6 +1281,9 @@ struct Scene
       
         if (err != ZE_RESULT_SUCCESS)
           throw std::runtime_error("build error");
+
+        /* validate that no buffer overflow occured */
+        validate_buffers();
       }
       double t1 = embree::getSeconds();
 
@@ -1271,9 +1301,17 @@ struct Scene
         if (i == 16)
           throw std::runtime_error("build requires more than 16 iterations");
         
+        /* also test low amount of memory to interrupt BVH build at different phases */
+        switch (i) {
+        case 0 : bytes = accelBytes = (size.rtasBufferSizeBytesExpected+9)/10; break;
+        case 1 : bytes = accelBytes = (size.rtasBufferSizeBytesExpected+4)/5; break;
+        case 2 : bytes = accelBytes = (size.rtasBufferSizeBytesExpected+1)/2; break;
+        case 3 : bytes = accelBytes = size.rtasBufferSizeBytesExpected; break;
+        default: accelBytes = bytes; break;
+        }
+
         /* allocate BVH data */
         free_accel_buffer(accel,context);
-        accelBytes = bytes;
         accel = alloc_accel_buffer(accelBytes+sentinelBytes,device,context);
         memset(accel,0,accelBytes+sentinelBytes);
 
@@ -1307,6 +1345,9 @@ struct Scene
         if (size.rtasBufferSizeBytesMaxRequired < accelBufferBytesOut )
           throw std::runtime_error("failed build returned too large estimate");
 
+        /* validate that no buffer overflow occured */
+        validate_buffers();
+
         bytes = accelBufferBytesOut;
       }
       
@@ -1318,25 +1359,6 @@ struct Scene
     }
 
     this->bounds = bounds;
-
-    if (!benchmark)
-    {
-      /* scratch buffer bounds check */
-      for (size_t i=size.scratchBufferSizeBytes; i<size.scratchBufferSizeBytes+sentinelBytes; i++) {
-        if (scratchBuffer[i] == 0x00) continue;
-        throw std::runtime_error("scratch buffer bounds check failed");
-      }
-      /* acceleration structure bounds check */
-      for (size_t i=accelBytes; i<accelBytes+sentinelBytes; i++) {
-        if (((char*)accel)[i] == 0x00) continue;
-        throw std::runtime_error("acceleration buffer bounds check failed");
-      }
-      /* check if returned size of acceleration structure is correct */
-      for (size_t i=accelBufferBytesOut; i<accelBytes; i++) {
-        if (((char*)accel)[i] == 0x00) continue;
-        throw std::runtime_error("wrong acceleration structure size returned");
-      }
-    }
   }
   
   void buildTriMap(Transform local_to_world, std::vector<uint32_t> id_stack, uint32_t instUserID, bool procedural_instance, std::vector<Hit>& tri_map)

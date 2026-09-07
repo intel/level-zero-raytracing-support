@@ -468,6 +468,8 @@ ze_result_t zeDeviceGetRTASPropertiesExp( const ze_device_handle_t hDevice, ze_r
     return ZE_RESULT_SUCCESS;
   }
 
+
+
   
   return ZE_RESULT_ERROR_UNKNOWN;
 }

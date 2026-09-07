@@ -30,7 +30,6 @@ namespace embree
     else
       return "";
   }
-
   int checkBoolEnvVar(const char* varName)
   {
     const std::string str = get_env_string(varName);
@@ -50,6 +49,7 @@ namespace embree
 
   ze_rtas_format_t get_env_rtas_format()
   {
+#if !defined(NDEBUG)
     static const std::string str = to_lower(get_env_string("ZE_RTAS_FORMAT"));
     
     if      (str == ""  ) return ZE_RTAS_FORMAT_INVALID;
@@ -63,6 +63,9 @@ namespace embree
         return ZE_RTAS_FORMAT_INVALID;
       }
     }
+#else
+    return ZE_RTAS_FORMAT_INVALID;
+#endif
   }
 
   int get_env_enable_spatial_splits() {
