@@ -2091,6 +2091,132 @@ void* allocDispatchGlobals(sycl::device device, sycl::context context)
   return dispatchGlobalsPtr;
 }
 
+/* builds a top-level structure over more than 2^24 instances of one triangle and checks that rays hit instances past that index */
+uint32_t executeManyInstancesTest(sycl::device& device, sycl::queue& queue, sycl::context& context)
+{
+  ze_device_handle_t hDevice = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(device);
+  ze_rtas_device_ext_properties_t rtasProp = { ZE_STRUCTURE_TYPE_RTAS_DEVICE_EXT_PROPERTIES };
+  ze_device_properties_t devProp = { ZE_STRUCTURE_TYPE_DEVICE_PROPERTIES, &rtasProp };
+  if (ZeWrapper::zeDeviceGetProperties(hDevice, &devProp) != ZE_RESULT_SUCCESS)
+    throw std::runtime_error("zeDeviceGetProperties failed");
+
+  auto build = [&](const ze_rtas_builder_geometry_info_ext_t** geoms, uint32_t numGeometries, ze_rtas_aabb_ext_t* bounds) -> void*
+  {
+    ze_rtas_builder_build_op_ext_desc_t args;
+    memset(&args,0,sizeof(args));
+    args.stype = ZE_STRUCTURE_TYPE_RTAS_BUILDER_BUILD_OP_EXT_DESC;
+    args.rtasFormat = rtasProp.rtasFormat;
+    args.buildQuality = ZE_RTAS_BUILDER_BUILD_QUALITY_HINT_EXT_LOW;
+    args.ppGeometries = geoms;
+    args.numGeometries = numGeometries;
+
+    ze_rtas_builder_ext_properties_t size = { ZE_STRUCTURE_TYPE_RTAS_BUILDER_EXT_PROPERTIES };
+    if (ZeWrapper::zeRTASBuilderGetBuildPropertiesExt(hBuilder,&args,&size) != ZE_RESULT_SUCCESS)
+      throw std::runtime_error("BVH size estimate failed");
+
+    std::vector<char> scratch(size.scratchBufferSizeBytes);
+    void* accel = alloc_accel_buffer(size.rtasBufferSizeBytesMaxRequired,device,context);
+    ze_result_t err = ZeWrapper::zeRTASBuilderBuildExt(hBuilder,&args,scratch.data(),scratch.size(),
+                                                       accel,size.rtasBufferSizeBytesMaxRequired,
+                                                       parallelOperation,nullptr,bounds,nullptr);
+    if (parallelOperation)
+    {
+      ze_rtas_parallel_operation_ext_properties_t prop = { ZE_STRUCTURE_TYPE_RTAS_PARALLEL_OPERATION_EXT_PROPERTIES };
+      if (ZeWrapper::zeRTASParallelOperationGetPropertiesExt(parallelOperation,&prop) != ZE_RESULT_SUCCESS)
+        throw std::runtime_error("get max concurrency failed");
+      tbb::parallel_for(0u, prop.maxConcurrency, 1u, [&](uint32_t) {
+        err = ZeWrapper::zeRTASParallelOperationJoinExt(parallelOperation);
+      });
+    }
+    if (err != ZE_RESULT_SUCCESS)
+      throw std::runtime_error("build error");
+    return accel;
+  };
+
+  /* one triangle */
+  ze_rtas_float3_ext_t vertices[3] = { { 0, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 } };
+  ze_rtas_triangle_indices_uint32_ext_t triangle = { 0, 1, 2 };
+  ze_rtas_builder_triangles_geometry_info_ext_t mesh;
+  memset(&mesh,0,sizeof(mesh));
+  mesh.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_TRIANGLES;
+  mesh.geometryMask = 0xFF;
+  mesh.triangleFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_TRIANGLE_INDICES_UINT32;
+  mesh.vertexFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_FLOAT3;
+  mesh.triangleCount = 1;
+  mesh.vertexCount = 3;
+  mesh.triangleStride = sizeof(ze_rtas_triangle_indices_uint32_ext_t);
+  mesh.vertexStride = sizeof(ze_rtas_float3_ext_t);
+  mesh.pTriangleBuffer = &triangle;
+  mesh.pVertexBuffer = vertices;
+  const ze_rtas_builder_geometry_info_ext_t* meshGeom = (const ze_rtas_builder_geometry_info_ext_t*) &mesh;
+  ze_rtas_aabb_ext_t blasBounds;
+  void* blas = build(&meshGeom,1,&blasBounds);
+
+  /* 2^24 + 16 instances of it on a grid, instance k at (2 (k % W), 2 (k / W), 0) */
+  const uint32_t numInstances = (1u << 24) + 16;
+  const uint32_t W = 4096;
+  std::vector<ze_rtas_transform_float3x4_column_major_ext_t> xfm(numInstances);
+  std::vector<ze_rtas_builder_instance_geometry_info_ext_t> instances(numInstances);
+  std::vector<const ze_rtas_builder_geometry_info_ext_t*> geoms(numInstances);
+  tbb::parallel_for(0u, numInstances, 1u, [&](uint32_t k) {
+    xfm[k] = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 2.0f * float(k % W), 2.0f * float(k / W), 0 };
+    ze_rtas_builder_instance_geometry_info_ext_t& g = instances[k];
+    memset(&g,0,sizeof(g));
+    g.geometryType = ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXT_INSTANCE;
+    g.geometryMask = 0xFF;
+    g.transformFormat = ZE_RTAS_BUILDER_INPUT_DATA_FORMAT_EXT_FLOAT3X4_COLUMN_MAJOR;
+    g.instanceUserID = k;
+    g.pTransform = &xfm[k];
+    g.pBounds = &blasBounds;
+    g.pAccelerationStructure = blas;
+    geoms[k] = (const ze_rtas_builder_geometry_info_ext_t*) &g;
+  });
+  ze_rtas_aabb_ext_t tlasBounds;
+  void* tlas = build(geoms.data(),numInstances,&tlasBounds);
+
+  /* trace one ray into each of a few instances, some past index 2^24 */
+  const uint32_t numRays = 5;
+  uint32_t* in = (uint32_t*) sycl::malloc_shared(numRays*sizeof(uint32_t),device,context);
+  uint32_t* out = (uint32_t*) sycl::malloc_shared(3*numRays*sizeof(uint32_t),device,context);
+  in[0] = 0; in[1] = (1u << 24) - 1; in[2] = 1u << 24; in[3] = (1u << 24) + 7; in[4] = numInstances - 1;
+  intel_raytracing_acceleration_structure_t accel = (intel_raytracing_acceleration_structure_t) tlas;
+  queue.submit([&](sycl::handler& cgh) {
+                 cgh.parallel_for(sycl::range<1>(numRays), [=](sycl::item<1> item) {
+                     const uint32_t i = item.get_id(0);
+                     const uint32_t k = in[i];
+                     intel_ray_desc_t ray;
+                     ray.origin = sycl::float3(2.0f * float(k % W) + 0.25f, 2.0f * float(k / W) + 0.25f, -1.0f);
+                     ray.direction = sycl::float3(0, 0, 1);
+                     ray.tmin = 0.0f;
+                     ray.tmax = 1e30f;
+                     ray.mask = 0xFF;
+                     ray.flags = intel_ray_flags_none;
+                     intel_ray_query_t query = intel_ray_query_init(ray,accel);
+                     intel_ray_query_start_traversal(query);
+                     intel_ray_query_sync(query);
+                     out[3*i+0] = intel_has_committed_hit(query) ? 1 : 0;
+                     out[3*i+1] = intel_get_hit_instance_id(query,intel_hit_type_committed_hit);
+                     out[3*i+2] = intel_get_hit_instance_user_id(query,intel_hit_type_committed_hit);
+                     intel_ray_query_abandon(query);
+                   });
+               });
+  queue.wait_and_throw();
+
+  uint32_t numErrors = 0;
+  for (uint32_t i=0; i<numRays; i++)
+  {
+    if (out[3*i+0] == 1 && out[3*i+1] == in[i] && out[3*i+2] == in[i]) continue;
+    std::cout << "instance " << in[i] << ": hit " << out[3*i+0] << ", instance ID " << out[3*i+1] << ", user ID " << out[3*i+2] << std::endl;
+    numErrors++;
+  }
+
+  sycl::free(in,context);
+  sycl::free(out,context);
+  free_accel_buffer(tlas,context);
+  free_accel_buffer(blas,context);
+  return numErrors;
+}
+
 int main(int argc, char* argv[]) try
 {
   TestType test = TestType::TRIANGLES_COMMITTED_HIT;
@@ -2099,6 +2225,7 @@ int main(int argc, char* argv[]) try
   ZeWrapper::RTAS_BUILD_MODE rtas_build_mode = ZeWrapper::RTAS_BUILD_MODE::LEVEL_ZERO;
   
   bool jit_cache = false;
+  bool manyInstances = false;
   int testID = -1;
   int testCount = -1;
   uint32_t numThreads = tbb::this_task_arena::max_concurrency();
@@ -2141,6 +2268,9 @@ int main(int argc, char* argv[]) try
     }
     else if (strcmp(argv[i], "--build_test_instances") == 0) {
       test = TestType::BUILD_TEST_INSTANCES;
+    }
+    else if (strcmp(argv[i], "--build_test_many_instances") == 0) {
+      manyInstances = true;
     }
     else if (strcmp(argv[i], "--build_test_mixed") == 0) {
       test = TestType::BUILD_TEST_MIXED;
@@ -2290,7 +2420,9 @@ int main(int argc, char* argv[]) try
     throw std::runtime_error("parallel operation creation failed");
 
   uint32_t numErrors = 0;
-  if (test >= TestType::BENCHMARK_TRIANGLES)
+  if (manyInstances)
+    numErrors = executeManyInstancesTest(device,queue,context);
+  else if (test >= TestType::BENCHMARK_TRIANGLES)
     numErrors = executeBenchmark(device,queue,context,test,testID,testCount);
   else if (test >= TestType::BUILD_TEST_TRIANGLES)
     numErrors = executeBuildTest(device,queue,context,test,buildMode,testID,testCount);

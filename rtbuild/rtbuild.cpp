@@ -448,9 +448,14 @@ namespace embree
     if (args->ppGeometries == nullptr && args->numGeometries > 0)
       return ZE_RESULT_ERROR_INVALID_NULL_POINTER;
 
-    /* validate that number of geometries are in range */
-    if (args->numGeometries > 0x00FFFFFF)
-      return ZE_RESULT_ERROR_INVALID_ENUMERATION;
+    /* validate that number of geometries are in range: only triangle, quad and procedural leaves store a 24 bit shader index */
+    if (args->numGeometries > 0x00FFFFFF) {
+      for (uint32_t i = 0; i < args->numGeometries; i++) {
+        const ze_rtas_builder_geometry_info_exp_t* geom = args->ppGeometries[i];
+        if (geom && geom->geometryType != ZE_RTAS_BUILDER_GEOMETRY_TYPE_EXP_INSTANCE)
+          return ZE_RESULT_ERROR_INVALID_ENUMERATION;
+      }
+    }
 
     /* validate build quality */
     if (args->buildQuality < 0 || ZE_RTAS_BUILDER_BUILD_QUALITY_HINT_EXP_HIGH < args->buildQuality)

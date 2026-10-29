@@ -189,6 +189,7 @@ ADD_INDIVIDUAL_TEST(C G NAME builder_triangles_expected_ext      COMMAND embree_
 ADD_INDIVIDUAL_TEST(C G NAME builder_procedurals_expected_ext    COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_procedurals --build_mode_expected COUNT 128)
 ADD_INDIVIDUAL_TEST(C G NAME builder_instances_expected_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_instances   --build_mode_expected COUNT 128)
 ADD_INDIVIDUAL_TEST(C G NAME builder_mixed_expected_ext          COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_mixed       --build_mode_expected COUNT 128)
+ADD_INDIVIDUAL_TEST(C G NAME builder_many_instances_ext       COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_many_instances)
 
 ADD_INDIVIDUAL_TEST(C G NAME builder_triangles_worst_case_ext      COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_triangles   --build_mode_worst_case COUNT 128)
 ADD_INDIVIDUAL_TEST(C G NAME builder_procedurals_worst_case_ext    COMMAND embree_rthwif_test_ext ${RTAS_BUILDER_MODE} --build_test_procedurals --build_mode_worst_case COUNT 128)
